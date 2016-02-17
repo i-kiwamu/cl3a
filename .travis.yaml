@@ -1,5 +1,5 @@
 language: common-lisp
-sudo: false
+sudo: required
 
 env:
   global:
@@ -11,6 +11,11 @@ env:
 
 install:
   - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
+  - ros install prove
+
+before_script:
+  - ros --version
+  - ros config
 
 script:
   - ros-prove cl3a-test.asd
