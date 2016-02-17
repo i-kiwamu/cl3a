@@ -1,0 +1,16 @@
+language: common-lisp
+sudo: false
+
+env:
+  global:
+    - PATH=$HOME/.roswell/bin:$PATH
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
+  matrix:
+    - LISP=sbcl-bin
+    - LISP=ccl-bin
+
+install:
+  - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
+
+script:
+  - ros-prove cl3a-test.asd
