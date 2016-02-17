@@ -3,13 +3,17 @@ sudo: required
 
 env:
   global:
-    - PATH=$HOME/.roswell/bin:$PATH
+    - PATH=~/.roswell/bin:$PATH
     - ROSWELL_INSTALL_DIR=$HOME/.roswell
   matrix:
     - LISP=sbcl-bin
     - LISP=ccl-bin
+    - LISP=clisp
+    - LISP=abcl
+    - LISP=ecl
 
 install:
+  # Install Roswell
   - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
   - ros install prove
 
@@ -18,4 +22,4 @@ before_script:
   - ros config
 
 script:
-  - ros-prove cl3a-test.asd
+  - run-prove cl3a-test.asd
