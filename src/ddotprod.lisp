@@ -44,8 +44,7 @@
             :sum (+ s0 s1 s2 s3 s4) :into res
             :finally
             (return (+ res
-                       (loop :with nrest :of-type fixnum = (- nmin n5)
-                             :for ir :from n5 :below nmin
+                       (loop :for ir :from n5 :below nmin
                              :sum (* a (aref va ir) b (aref vb ir))))))))))
 
 
