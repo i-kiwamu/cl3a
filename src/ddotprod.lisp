@@ -17,7 +17,7 @@
                 ddotprod-ker))
 (defun ddotprod-ker (p n nv a va b vb)
   "Dot production between vectors a*va and b*vb"
-  (declare ;(optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
            (type fixnum p n nv)
            (type double-float a b)
            (type (simple-array double-float (*)) va vb))
@@ -50,14 +50,14 @@
                           :sum (* a (aref va ir) b (aref vb ir))))))))))
 
 
-(declaim ; (inline ddotprod)
+(declaim (inline ddotprod)
          (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
                           double-float)
                 ddotprod))
 (defun ddotprod (va vb)
   "Dot product with two vectors va and vb"
-  (declare ;(optimize (speed 3) (debug 0) (safety 2) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 0) (safety 2) (compilation-speed 3))
            (type (simple-array double-float (*)) va vb))
   (let* ((na (the fixnum (length va)))
          (nb (the fixnum (length vb)))

@@ -3,7 +3,8 @@
   (:use :cl)
   (:export :*L1-size*
            :ifloor
-           :dvv-calc-within-L1))
+           :dvv-calc-within-L1
+           :different-length-warn))
 (in-package :cl3a.utilities)
 
 
@@ -61,7 +62,7 @@
 (declaim (inline different-length-warn))
 (defun different-length-warn (na nb)
   "Warn different lengths"
-  (declare ;(optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
            (type fixnum na nb))
   (warn (format nil "Length of two vectors were different (~D and ~D). Shorter one is used." na nb)))
 
