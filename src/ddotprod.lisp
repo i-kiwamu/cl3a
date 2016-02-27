@@ -5,17 +5,17 @@
                 :ifloor
                 :dvv-calc-within-L1
                 :different-length-warn)
-  (:export :ddotprod))
+  (:export :dv*v))
 (in-package :cl3a.ddotprod)
 
 
-(declaim (inline ddotprod-ker)
+(declaim (inline dv*v-ker)
          (ftype (function (fixnum fixnum fixnum
                            double-float (simple-array double-float (*))
                            double-float (simple-array double-float (*)))
                           double-float)
-                ddotprod-ker))
-(defun ddotprod-ker (p n nv a va b vb)
+                dv*v-ker))
+(defun dv*v-ker (p n nv a va b vb)
   "Dot production between vectors a*va and b*vb"
   (declare (optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
            (type fixnum p n nv)
@@ -50,12 +50,12 @@
                           :sum (* a (aref va ir) b (aref vb ir))))))))))
 
 
-(declaim (inline ddotprod)
+(declaim (inline dv*v)
          (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
                           double-float)
-                ddotprod))
-(defun ddotprod (va vb)
+                dv*v))
+(defun dv*v (va vb)
   "Dot product with two vectors va and vb"
   (declare (optimize (speed 3) (debug 0) (safety 2) (compilation-speed 3))
            (type (simple-array double-float (*)) va vb))
@@ -65,4 +65,4 @@
                              (progn (different-length-warn na nb)
                                     (min na nb))
                              na))))
-    (apply #'+ (dvv-calc-within-L1 #'ddotprod-ker nv 1d0 va 1d0 vb))))
+    (apply #'+ (dvv-calc-within-L1 #'dv*v-ker nv 1d0 va 1d0 vb))))
