@@ -20,7 +20,7 @@
                         '(-1.21286010812897d0 1.10526916110367d0
                           1.70130308426156d0 -0.583769438010967d0
                           1.17720685549422d0 -0.0536449035935699d0))))
-    (coerce (cl3a:ddotprod va vb) 'single-float)))
+    (coerce (cl3a:dv*v va vb) 'single-float)))
 
 (is (ddotprod-test) -2.75810912665216)
 
