@@ -17,13 +17,14 @@
                 dv*v-ker))
 (defun dv*v-ker (p n nv va vb)
   "Dot production between vectors a*va and b*vb"
-  (declare (optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 1) (safety 1) (compilation-speed 3))
            (type fixnum p n nv)
            (type (simple-array double-float (*)) va vb))
   (let ((nvec (min nv n)))
     (cond
-      ((or (> p nvec) (< p 0) (<= nvec 0))
-       (warn (format nil "Position ~D is out of range of vectors." p)) 0d0)
+      ((= nvec 0) 0d0)
+      ((or (>= p nv) (< p 0) (< nvec 0))
+       (warn (format nil "Position ~D is out of range of vectors with length of ~D." p nvec)) 0d0)
       ((< nvec 5) (loop :for i :from p :below nvec
                         :sum (* (aref va i) (aref vb i))))
       (t (loop
@@ -38,7 +39,7 @@
             :and s2 :of-type double-float = (* (aref va i2) (aref vb i2))
             :and s3 :of-type double-float = (* (aref va i3) (aref vb i3))
             :and s4 :of-type double-float = (* (aref va i4) (aref vb i4))
-            :sum (+ s0 s1 s2 s3 s4) :into res
+            :sum (+ s0 s1 s2 s3 s4) :into res :of-type double-float
             :finally
             (return (+ res
                        (loop :for ir :from n5 :below nvec
@@ -52,7 +53,7 @@
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two vectors va and vb"
-  (declare (optimize (speed 3) (debug 0) (safety 2) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 1) (safety 1) (compilation-speed 3))
            (type (simple-array double-float (*)) va vb))
   (let* ((na (the fixnum (length va)))
          (nb (the fixnum (length vb)))

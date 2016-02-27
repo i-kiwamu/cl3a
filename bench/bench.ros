@@ -1,0 +1,22 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+
+(ql:quickload "trivial-benchmark" :silent t)
+(ql:quickload "cl3a" :silent t)
+
+(defun main (n-str m-str &rest argv)
+  (declare (ignorable argv))
+  (let* ((n (parse-integer n-str))
+         (m (parse-integer m-str))
+         (va (make-array (list n)
+                        :element-type 'double-float))
+         (vb (make-array (list n)
+                        :element-type 'double-float)))
+    (dotimes (i n)
+      (setf (aref va i) (random 1d0))
+      (setf (aref vb i) (random 1d0)))
+    (time (dotimes (i m)
+            (cl3a:dv*v va vb)))))

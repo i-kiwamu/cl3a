@@ -8,5 +8,5 @@
     :depends-on (:cl3a :prove)
     :components ((:module "t"
                           :components
-                          ((:file "cl3a-test"))))
+                          ((:test-file "cl3a-test"))))
     :perform (load-op :after (op c) (asdf:clear-system c)))
