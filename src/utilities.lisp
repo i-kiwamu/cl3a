@@ -38,14 +38,13 @@
 ;;                            double-float (simple-array double-float (*))
 ;;                            double-float (simple-array double-float (*)))
 ;;                           list) dvv-calc-within-L1))
-(defun dvv-calc-within-L1 (fun n a xa b xb)
+(defun dvv-calc-within-L1 (fun n xa xb)
   "Divide data into small parts (< L1 cache size), and calculate.
    fun should have arguments of 
    position (fixnum), length for calc (fixnum), vector length (fixnum),
    factor a (double-float), vector xa (simple-array double-float (*)),
    factor b (double-float), vector xb (simple-array double-float (*))"
   (declare ;(optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
-           (type double-float a b)
            (type fixnum n)
            (type (simple-array double-float (*)) xa xb))
   (loop
@@ -53,10 +52,10 @@
      :with k :of-type fixnum = (* (ifloor n m) m)
      :for i :below k :by m
      :with mi :of-type fixnum = (the fixnum (+ i m))
-     :collect (funcall fun i mi n a xa b xb) :into res
+     :collect (funcall fun i mi n xa xb) :into res
      :finally (return
                 (let ((ni (the fixnum (- n i))))
-                  (append res (list (funcall fun i ni n a xa b xb)))))))
+                  (append res (list (funcall fun i ni n xa xb)))))))
 
 
 (declaim (inline different-length-warn))
