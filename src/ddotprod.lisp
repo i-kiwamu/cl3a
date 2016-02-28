@@ -21,15 +21,16 @@
            (type fixnum p n nv)
            (type (simple-array double-float (*)) va vb))
   (let ((nvec (min nv n)))
+    (declare (fixnum nvec))
     (cond
       ((= nvec 0) 0d0)
       ((or (>= p nv) (< p 0) (< nvec 0))
        (warn (format nil "Position ~D is out of range of vectors with length of ~D." p nvec)) 0d0)
-      ((< nvec 5) (loop :for i :from p :below nvec
+      ((< nvec 5) (loop :for i :of-type fixnum :from p :below nvec
                         :sum (* (aref va i) (aref vb i))))
       (t (loop
             :with n5 :of-type fixnum = (* (ifloor nvec 5) 5)
-            :for i :below n5 :by 5
+            :for i :of-type fixnum :below n5 :by 5
             :with i1 :of-type fixnum = (+ i 1)
             :and i2 :of-type fixnum = (+ i 2)
             :and i3 :of-type fixnum = (+ i 3)
@@ -42,7 +43,7 @@
             :sum (+ s0 s1 s2 s3 s4) :into res :of-type double-float
             :finally
             (return (+ res
-                       (loop :for ir :from n5 :below nvec
+                       (loop :for ir :of-type fixnum :from n5 :below nvec
                           :sum (* (aref va ir) (aref vb ir))))))))))
 
 
@@ -55,10 +56,11 @@
   "Dot product with two vectors va and vb"
   (declare (optimize (speed 3) (debug 1) (safety 1) (compilation-speed 3))
            (type (simple-array double-float (*)) va vb))
-  (let* ((na (the fixnum (length va)))
-         (nb (the fixnum (length vb)))
-         (nv (the fixnum (if (/= na nb)
-                             (progn (different-length-warn na nb)
-                                    (min na nb))
-                             na))))
+  (let* ((na (length va))
+         (nb (length vb))
+         (nv (if (/= na nb)
+                 (progn (different-length-warn na nb)
+                        (min na nb))
+                 na)))
+    (declare (fixnum na nb nv))
     (apply #'+ (dvv-calc-within-L1 #'dv*v-ker nv va vb))))

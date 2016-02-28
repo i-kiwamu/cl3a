@@ -16,7 +16,9 @@
   "Take integer part of floor function"
   ;; (declare (optimize (speed 3) (debug 0) (safety 2) (compilation-speed 3))
   ;;          (type fixnum x y))
-  (multiple-value-bind (q) (floor (/ x y)) q))
+  (multiple-value-bind (q) (floor (/ x y))
+    (declare (fixnum q))
+    q))
 
 
 (declaim (inline dvv-calc-within-L1)
@@ -44,11 +46,12 @@
   (loop
      :with m :of-type fixnum = (ifloor *L1-size* 8)
      :with k :of-type fixnum = (* (ifloor n m) m)
-     :for i :below k :by m
+     :for i :of-type fixnum :below k :by m
      :with mi :of-type fixnum = (the fixnum (1- (+ i m)))
      :collect (funcall fun i mi n xa xb) :into res
      :finally (return
                 (let ((ni (the fixnum (- n i))))
+                  (declare (fixnum ni))
                   (append res (list (funcall fun i ni n xa xb)))))))
 
 
