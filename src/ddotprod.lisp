@@ -17,7 +17,7 @@
                 dv*v-ker))
 (defun dv*v-ker (p n nv va vb)
   "Dot production between vectors a*va and b*vb"
-  (declare (optimize (speed 3) (debug 1) (safety 1) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 1) (safety 1))
            (type fixnum p n nv)
            (type (simple-array double-float (*)) va vb))
   (let ((nvec (min nv n)))
@@ -54,7 +54,7 @@
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two vectors va and vb"
-  (declare (optimize (speed 3) (debug 1) (safety 1) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 1) (safety 1))
            (type (simple-array double-float (*)) va vb))
   (let* ((na (length va))
          (nb (length vb))
