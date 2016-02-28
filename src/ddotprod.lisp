@@ -1,8 +1,8 @@
 (in-package :cl-user)
 (defpackage cl3a.ddotprod
-  (:use :cl)
+  (:use :cl :trivial-types)
   (:import-from :cl3a.utilities
-                :ifloor
+                :min-factor
                 :dvv-calc-within-L1
                 :different-length-warn)
   (:export :dv*v))
@@ -16,51 +16,62 @@
                           double-float)
                 dv*v-ker))
 (defun dv*v-ker (p n nv va vb)
-  "Dot production between vectors a*va and b*vb"
-  (declare (optimize (speed 3) (debug 1) (safety 1))
+  "Dot production between vectors va and vb"
+  (declare (optimize (speed 3) (debug 0) (safety 0))
            (type fixnum p n nv)
            (type (simple-array double-float (*)) va vb))
-  (let ((nvec (min nv n)))
-    (declare (fixnum nvec))
+  (let* ((nvec (min nv (the fixnum (+ p n))))
+         (n5 (min-factor nvec 5))
+         (res 0d0))
+    (declare (type fixnum nvec n5)
+             (type double-float res))
     (cond
-      ((= nvec 0) 0d0)
       ((or (>= p nv) (< p 0) (< nvec 0))
-       (warn (format nil "Position ~D is out of range of vectors with length of ~D." p nvec)) 0d0)
-      ((< nvec 5) (loop :for i :of-type fixnum :from p :below nvec
-                        :sum (* (aref va i) (aref vb i))))
-      (t (loop
-            :with n5 :of-type fixnum = (* (ifloor nvec 5) 5)
-            :for i :of-type fixnum :below n5 :by 5
-            :with i1 :of-type fixnum = (+ i 1)
-            :and i2 :of-type fixnum = (+ i 2)
-            :and i3 :of-type fixnum = (+ i 3)
-            :and i4 :of-type fixnum = (+ i 4)
-            :with s0 :of-type double-float = (* (aref va i) (aref vb i))
-            :and s1 :of-type double-float = (* (aref va i1) (aref vb i1))
-            :and s2 :of-type double-float = (* (aref va i2) (aref vb i2))
-            :and s3 :of-type double-float = (* (aref va i3) (aref vb i3))
-            :and s4 :of-type double-float = (* (aref va i4) (aref vb i4))
-            :sum (+ s0 s1 s2 s3 s4) :into res :of-type double-float
-            :finally
-            (return (+ res
-                       (loop :for ir :of-type fixnum :from n5 :below nvec
-                          :sum (* (aref va ir) (aref vb ir))))))))))
+       (warn (format nil "Position ~D is out of range of vectors with length of ~D." p nvec))
+       0d0)
+      ((< nvec 5) (do ((i p (the fixnum (+ i 1))))
+                      ((>= (the fixnum i) nvec) res)
+                    (setf res (+ res
+                                 (the double-float (* (aref va i)
+                                                      (aref vb i)))))))
+      (t (let ((maxi
+                (do ((i p (+ i 5))
+                     (i1 (the fixnum (+ p 1)) (the fixnum (+ i1 5)))
+                     (i2 (the fixnum (+ p 2)) (the fixnum (+ i2 5)))
+                     (i3 (the fixnum (+ p 3)) (the fixnum (+ i3 5)))
+                     (i4 (the fixnum (+ p 4)) (the fixnum (+ i4 5))))
+                    ((>= i n5) i)
+                  (setf res (+ res
+                               (* (aref va i)  (aref vb i))
+                               (* (aref va i1) (aref vb i1))
+                               (* (aref va i2) (aref vb i2))
+                               (* (aref va i3) (aref vb i3))
+                               (* (aref va i4) (aref vb i4)))))))
+           (declare (type fixnum maxi))
+           (when (< maxi nvec)
+             (do ((i maxi (+ i 1)))
+                 ((>= i nvec))
+               (setf res (+ res
+                            (the double-float (* (aref va i)
+                                                 (aref vb i))))))))
+         res))))
 
 
-(declaim (inline dv*v)
-         (ftype (function ((simple-array double-float (*))
+(declaim (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
                           double-float)
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two vectors va and vb"
-  (declare (optimize (speed 3) (debug 1) (safety 1))
+  (declare (optimize (speed 3))
            (type (simple-array double-float (*)) va vb))
   (let* ((na (length va))
          (nb (length vb))
          (nv (if (/= na nb)
                  (progn (different-length-warn na nb)
                         (min na nb))
-                 na)))
-    (declare (fixnum na nb nv))
-    (apply #'+ (dvv-calc-within-L1 #'dv*v-ker nv va vb))))
+                 na))
+         (res (dvv-calc-within-L1 #'dv*v-ker nv va vb)))
+    (declare (type fixnum na nb nv)
+             (type (proper-list double-float) res))
+    (apply #'+ res)))
