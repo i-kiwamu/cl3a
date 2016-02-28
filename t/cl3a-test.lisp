@@ -4,7 +4,7 @@
 (in-package #:cl3a-test)
 
 
-(plan 1)
+(plan 2)
 
 
 (defun ddotprod-test ()
@@ -23,6 +23,18 @@
     (coerce (cl3a:dv*v va vb) 'single-float)))
 
 (is (ddotprod-test) -2.75810912665216)
+
+
+(defun dnorm-test ()
+  (let ((va (make-array (list 6)
+                        :element-type 'double-float
+                        :initial-contents
+                        '(-0.00664006247297288d0 -0.43263204446022d0
+                          -0.810687684292556d0 0.471336522196144d0
+                          -1.25012655788662d0 0.169329932082027d0))))
+    (coerce (cl3a:dnorm va) 'single-float)))
+
+(is (dnorm-test) 2.65807625157542)
 
 
 (finalize)

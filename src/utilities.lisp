@@ -2,6 +2,7 @@
 (defpackage cl3a.utilities
   (:use :cl)
   (:export :ifloor
+           :dv-calc-within-L1
            :dvv-calc-within-L1
            :different-length-warn))
 (in-package :cl3a.utilities)
@@ -21,6 +22,37 @@
     q))
 
 
+(declaim (inline dv-calc-within-L1)
+         (ftype (function ((function (fixnum fixnum fixnum
+                                      (simple-array double-float (*)))
+                                     double-float)
+                           fixnum
+                           (simple-array double-float (*)))
+                          list) dv-calc-within-L1))
+(defun dv-calc-within-L1 (fun n xa)
+  "Divide data into small parts (< L1 cache size), and calculate.
+   fun should have arguments of 
+   position (fixnum), length for calc (fixnum), vector length (fixnum),
+   vector xa (simple-array double-float (*))"
+  (declare (optimize (speed 3))
+           (type (function (fixnum fixnum fixnum
+                            (simple-array double-float (*)))
+                           double-float) fun)
+           (type fixnum n)
+           (type (simple-array double-float (*)) xa))
+  (loop
+     :with m :of-type fixnum = (ifloor *L1-size* 8)
+     :with k :of-type fixnum = (* (ifloor n m) m)
+     :for i :of-type fixnum :below k :by m
+     :with mi :of-type fixnum = (the fixnum (1- (+ i m)))
+     :collect (funcall fun i mi n xa) :into res
+     :finally (return
+                (let ((ni (the fixnum (- n i))))
+                  (declare (fixnum ni))
+                  (append res (list (funcall fun i ni n xa)))))))
+
+
+
 (declaim (inline dvv-calc-within-L1)
          (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array double-float (*))
@@ -34,9 +66,9 @@
   "Divide data into small parts (< L1 cache size), and calculate.
    fun should have arguments of 
    position (fixnum), length for calc (fixnum), vector length (fixnum),
-   vector xa (simple-array vtype (*)),
-   vector xb (simple-array vtype (*))"
-  (declare (optimize (speed 3) (compilation-speed 3))
+   vector xa (simple-array double-float (*)),
+   vector xb (simple-array double-float (*))"
+  (declare (optimize (speed 3))
            (type (function (fixnum fixnum fixnum
                             (simple-array double-float (*))
                             (simple-array double-float (*)))
@@ -58,7 +90,7 @@
 (declaim (inline different-length-warn))
 (defun different-length-warn (na nb)
   "Warn different lengths"
-  (declare (optimize (speed 3) (debug 0) (safety 0) (compilation-speed 3))
+  (declare (optimize (speed 3) (debug 0) (safety 0))
            (type fixnum na nb))
   (warn (format nil "Length of two vectors were different (~D and ~D). Shorter one is used." na nb)))
 

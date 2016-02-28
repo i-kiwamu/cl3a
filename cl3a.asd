@@ -12,5 +12,6 @@
                   :components
                   ((:file "cl3a" :depends-on ("ddotprod"))
                    (:file "utilities")
-                   (:file "ddotprod" :depends-on ("utilities")))))
+                   (:file "ddotprod" :depends-on ("utilities"))
+                   (:file "dnorm" :depends-on ("utilities")))))
     :in-order-to ((test-op (load-op cl3a-test))))
