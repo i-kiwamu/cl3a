@@ -3,3 +3,5 @@
 *.lisp-temp
 
 bench/bench
+
+dotprod_bechmarks.numbers
