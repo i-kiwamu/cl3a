@@ -11,8 +11,7 @@
 (defparameter *L1-size* (the fixnum 32768))
 
 
-;; (declaim (inline ifloor)
-;;          (ftype (function (integer integer) integer) ifloor))
+(declaim (ftype (function (integer integer) integer) ifloor))
 (defun ifloor (x y)
   "Take integer part of floor function"
   (declare (type integer x y))
@@ -21,8 +20,7 @@
     q))
 
 
-(declaim ;(inline min-factor)
-         (ftype (function (integer integer) integer)
+(declaim (ftype (function (integer integer) integer)
                 min-factor))
 (defun min-factor (x y)
   (declare (type integer x y))
@@ -31,8 +29,7 @@
     (* temp y)))
 
 
-(declaim ;(inline dvv-calc-within-L1)
-         (ftype (function ((function (fixnum fixnum fixnum
+(declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array double-float (*))
                                       (simple-array double-float (*)))
                                      double-float)
@@ -54,8 +51,8 @@
                            double-float) fun)
            (type fixnum n)
            (type (simple-array double-float (*)) xa xb))
-  (let* ((m (ifloor *L1-size* 8))  ; calculation length at a time
-         (nres (ifloor n m))
+  (let* ((m (ifloor *L1-size* 8))  ; calc length at a time
+         (nres (ifloor n m))  ; number of calc
          (k (* nres m))
          (res (if (> n k)  ; n = k if (mod n m) = 0
                   (make-list (1+ nres) :initial-element 0d0)
@@ -79,7 +76,4 @@
   (declare (optimize (speed 3))
            (type fixnum na nb))
   (warn (format nil "Length of two vectors were different (~D and ~D). Shorter one is used." na nb)))
-
-(define-condition different-length-error (error)
-  ((text :initarg :text :reader text)))
 
