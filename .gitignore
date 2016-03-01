@@ -3,3 +3,9 @@
 *.lisp-temp
 
 bench/bench
+
+bench/bench-cl
+
+bench/bench-fort
+
+*.numbers
