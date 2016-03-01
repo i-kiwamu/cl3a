@@ -2,7 +2,7 @@
 (defpackage cl3a.dnorm
   (:use :cl)
   (:import-from :cl3a.utilities
-                :dvv-calc-within-L1
+                :dvvs-calc-within-L1
                 :different-length-warn)
   (:import-from :cl3a.ddotprod
                 :dv*v)

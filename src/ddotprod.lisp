@@ -3,7 +3,7 @@
   (:use :cl :trivial-types)
   (:import-from :cl3a.utilities
                 :min-factor
-                :dvv-calc-within-L1
+                :dvvs-calc-within-L1
                 :different-length-warn)
   (:export :dv*v))
 (in-package :cl3a.ddotprod)
@@ -71,7 +71,7 @@
                  (progn (different-length-warn na nb)
                         (min na nb))
                  na))
-         (res (dvv-calc-within-L1 #'dv*v-ker nv va vb)))
+         (res (dvvs-calc-within-L1 #'dv*v-ker nv va vb)))
     (declare (type fixnum na nb nv)
              (type (proper-list double-float) res))
     (apply #'+ res)))
