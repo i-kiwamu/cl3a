@@ -4,9 +4,12 @@
 exec ros -Q -- $0 "$@"
 |#
 
-; (ql:quickload "trivial-benchmark" :silent t)
+
+#+sbcl (sb-posix:chdir "../")
+#+ccl (ccl:cwd "../")
 (ql:quickload "cl3a" :silent t)
-(require 'sb-sprof)
+#+sbcl (sb-posix:chdir "./bench")
+#+ccl (ccl:cwd "./bench")
 
 
 (defun run-bench (n m)
@@ -15,22 +18,20 @@ exec ros -Q -- $0 "$@"
                         :element-type 'double-float))
         (vb (make-array (list n)
                         :element-type 'double-float)))
-    (declare ((simple-array double-float (*)) va vb))
+    (declare (type (simple-array double-float (*)) va vb))
     (dotimes (i n)
       (setf (aref va i) (random 1d0))
       (setf (aref vb i) (random 1d0)))
-    ;; (benchmark:with-timing (m)
-    ;;   (cl3a:dv*v va vb))))
     (time (loop :repeat m :do (cl3a:dv*v va vb)))))
 
 
 (defun main (n-str m-str &rest argv)
   (declare (ignorable argv))
-  (let* ((n (parse-integer n-str))
-         (m (parse-integer m-str)))
-    (declare (fixnum n m))
-    (sb-sprof:with-profiling (:max-samples 1000
-                              :report :flat
-                              :loop nil
-                              :show-progress t)
-      (run-bench n m))))
+  (let ((n (parse-integer n-str))
+        (m (parse-integer m-str)))
+    (declare (type fixnum n m))
+    #+sbcl (sb-profile:profile "CL3A" "CL3A.UTILITIES" "CL3A.DDOTPROD")
+    (run-bench n m)
+    #+sbcl (sb-profile:report)
+    #+sbcl (sb-profile:unprofile)
+    ))
