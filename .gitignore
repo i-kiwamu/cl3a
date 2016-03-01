@@ -3,3 +3,9 @@
 *.lisp-temp
 
 bench/bench
+
+dotprod_bechmarks.numbers
+
+bench/bench-cl
+
+bench/bench-fort
