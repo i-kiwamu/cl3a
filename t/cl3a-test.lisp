@@ -8,6 +8,7 @@
 
 
 (defun ddotprod-test (n)
+  (declare (type integer n))
   (let ((va (make-array (list n) :element-type 'double-float))
         (vb (make-array (list n) :element-type 'double-float)))
     (declare (type (simple-array double-float (*)) va vb))
@@ -22,6 +23,7 @@
 
 
 (defun dnorm-test (n)
+  (declare (type integer n))
   (let ((va (make-array (list n) :element-type 'double-float)))
     (declare (type (simple-array double-float (*)) va))
     (dotimes (i n)
