@@ -26,7 +26,7 @@
   (declare (type integer x y))
   (let* ((m (mod x y)))
     (declare (type integer m))
-    (if (= m 0) x (- x m))))
+    (if (= m 0) (- x y) (- x m))))
 
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
