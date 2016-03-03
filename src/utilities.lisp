@@ -3,7 +3,7 @@
   (:use :cl :trivial-types)
   (:export :ifloor
            :min-factor
-           :dvv-calc-within-L1
+           :dvvs-calc-within-L1
            :different-length-warn))
 (in-package :cl3a.utilities)
 
@@ -15,18 +15,18 @@
 (defun ifloor (x y)
   "Take integer part of floor function"
   (declare (type integer x y))
-  (multiple-value-bind (q) (floor (/ x y))
-    (declare (integer q))
-    q))
+  (let* ((m (mod x y))
+         (x0 (- x m)))
+    (declare (type integer m x0))
+    (if (= m 0) (/ x y) (/ x0 y))))
 
 
-(declaim (ftype (function (integer integer) integer)
-                min-factor))
+(declaim (ftype (function (integer integer) integer) min-factor))
 (defun min-factor (x y)
   (declare (type integer x y))
-  (let ((temp (ifloor x y)))
-    (declare (integer temp))
-    (* temp y)))
+  (let* ((m (mod x y)))
+    (declare (type integer m))
+    (if (= m 0) (- x y) (- x m))))
 
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
@@ -37,8 +37,8 @@
                            (simple-array double-float (*))
                            (simple-array double-float (*)))
                           (proper-list double-float))
-                dvv-calc-within-L1))
-(defun dvv-calc-within-L1 (fun n xa xb)
+                dvvs-calc-within-L1))
+(defun dvvs-calc-within-L1 (fun n xa xb)
   "Divide data into small parts (< L1 cache size), and calculate.
    fun should have arguments of 
    position (fixnum), length for calc (fixnum), vector length (fixnum),
@@ -51,7 +51,7 @@
                            double-float) fun)
            (type fixnum n)
            (type (simple-array double-float (*)) xa xb))
-  (let* ((m (ifloor *L1-size* 8))  ; calc length at a time
+  (let* ((m (ifloor *L1-size* 8))  ; calc length at a time (8-octet-vector)
          (nres (ifloor n m))  ; number of calc
          (k (* nres m))
          (res (if (> n k)  ; n = k if (mod n m) = 0
