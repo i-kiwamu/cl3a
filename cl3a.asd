@@ -8,11 +8,11 @@
     :version "0.1"
     :author "Kiwamu Ishikura"
     :license "GPL"
-    :depends-on (:trivial-types)
+    :depends-on (:trivial-types :alexandria)
     :components ((:module "src"
                   :components
-                  ((:file "cl3a" :depends-on ("ddotprod" "dnorm"))
+                  ((:file "cl3a" :depends-on ("dotprod" "norm"))
                    (:file "utilities")
-                   (:file "ddotprod" :depends-on ("utilities"))
-                   (:file "dnorm" :depends-on ("utilities" "ddotprod")))))
+                   (:file "dotprod" :depends-on ("utilities"))
+                   (:file "norm" :depends-on ("utilities" "dotprod")))))
     :in-order-to ((test-op (load-op cl3a-test))))
