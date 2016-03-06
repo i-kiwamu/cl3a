@@ -11,8 +11,9 @@
     :depends-on (:trivial-types :alexandria)
     :components ((:module "src"
                   :components
-                  ((:file "cl3a" :depends-on ("dotprod" "norm"))
+                  ((:file "cl3a" :depends-on ("dotprod" "norm" "add_vector"))
                    (:file "utilities")
                    (:file "dotprod" :depends-on ("utilities"))
-                   (:file "norm" :depends-on ("utilities" "dotprod")))))
+                   (:file "norm" :depends-on ("utilities" "dotprod"))
+                   (:file "add_vector" :depends-on ("utilities")))))
     :in-order-to ((test-op (load-op cl3a-test))))
