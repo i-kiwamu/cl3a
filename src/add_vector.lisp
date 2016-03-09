@@ -15,7 +15,7 @@
 
 
 (defmacro v+v-ker (val-type p n nv va vb a b)
-  "Add two vectors between va and vb"
+  "Add two vectors between a*va and b*vb"
   (with-gensyms (nvec n5 res i maxi i1 i2 i3 i4)
     `(let* ((,nvec (min ,nv (the fixnum (+ ,p ,n))))
             (,n5 (min-factor ,nvec 5))
@@ -63,7 +63,7 @@
                           (simple-array double-float (*)))
                 dv+v-ker))
 (defun dv+v-ker (p n nv va vb a b)
-  "Add two double-float vectors between va and vb"
+  "Add two double-float vectors between a*va and b*vb"
   (declare (optimize (speed 3) (debug 0) (safety 0))
            (type fixnum p n nv)
            (type double-float a b)
@@ -102,17 +102,17 @@
                                (min na nb))
                    (t na)))
          (res (dvvv-calc-within-L1 #'dv+v-ker nv va vb a b))
-         (vc (make-array (list nv) :element-type 'double-float)))
-    (declare (type fixnum na nb nv)
-             (type (proper-list (simple-array double-float (*))) res))
-    (let ((p 0))
-      (declare (type fixnum p))
-      (dolist (r res)
-        (declare (type (simple-array double-float (*)) r))
-        (let ((nr (length r)))
-          (declare (type fixnum nr))
-          (setf (subseq vc p (+ p nr)) r)
-          (incf p nr))))
+         (vc (make-array (list nv) :element-type 'double-float))
+         (p 0))
+    (declare (type fixnum na nb nv p)
+             (type (proper-list (simple-array double-float (*))) res)
+             (type (simple-array double-float (*)) vc))
+    (dolist (r res)
+      (declare (type (simple-array double-float (*)) r))
+      (let ((nr (length r)))
+        (declare (type fixnum nr))
+        (setf (subseq vc p (+ p nr)) r)
+        (incf p nr)))
     vc))
 
 

@@ -4,14 +4,15 @@
   (:nicknames naive)
   (:export :dv*v
            :dnorm
-           :dv+v))
+           :dv+v
+           :drotate))
 (in-package #:naive-funcs)
 
 
 (declaim (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
                           double-float)
-                dv*v-naive))
+                dv*v))
 (defun dv*v (va vb)
   (declare (type (simple-array double-float (*)) va vb))
   (let ((nv (min (length va) (length vb)))
@@ -23,12 +24,16 @@
 
 (declaim (ftype (function ((simple-array double-float (*)))
                           double-float)
-                dnorm-naive))
+                dnorm))
 (defun dnorm (va)
   (declare (type (simple-array double-float (*)) va))
   (sqrt (dv*v va va)))
 
 
+(declaim (ftype (function (double-float (simple-array double-float (*))
+                           double-float (simple-array double-float (*)))
+                          (simple-array double-float (*)))
+                dv+v))
 (defun dv+v (a va b vb)
   (declare (type (simple-array double-float (*)) va vb)
            (type double-float a b))
@@ -38,3 +43,25 @@
       (setf (aref res i) (+ (* a (aref va i))
                             (* b (aref vb i)))))
     res))
+
+
+(declaim (ftype (function ((simple-array double-float (*))
+                           (simple-array double-float (*))
+                           (double-float -1d0 1d0) (double-float -1d0 1d0))
+                          (values (simple-array double-float (*))
+                                  (simple-array double-float (*))))
+                drotate))
+(defun drotate (va vb c s)
+  (declare (type (simple-array double-float (*)) va vb)
+           (type (double-float -1d0 1d0) c s))
+  (let* ((nv (min (length va) (length vb)))
+         (vc (make-array (list nv) :element-type 'double-float))
+         (vd (make-array (list nv) :element-type 'double-float)))
+    (declare (type fixnum nv)
+             (type (simple-array double-float (*)) vc vd))
+    (dotimes (i nv)
+      (setf (aref vc i) (+ (* c (aref va i))
+                           (* s (aref vb i))))
+      (setf (aref vd i) (- (* c (aref vb i))
+                           (* s (aref va i)))))
+    (values vc vd)))
