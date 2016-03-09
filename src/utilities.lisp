@@ -7,7 +7,6 @@
                           :string-designator)
   (:export :ifloor
            :min-factor
-           :setf-array-range
            :dvvs-calc-within-L1
            :lvvs-calc-within-L1
            :different-length-warn))
@@ -49,18 +48,6 @@
     (single-float 4)
     (double-float 8)
     (long-float 16)))
-
-
-(defun setf-array-range (ary-orig s ary-new)
-  "ary-orig[s:(e-1)] <- ary-new where e = length(ary-new)"
-  (declare (type (array t) ary-orig ary-new)
-           (type fixnum s))
-  (let ((size-orig (array-total-size ary-orig))
-        (size-new (array-total-size ary-new)))
-    (cond ((>= s size-orig) nil)
-          (t (do ((i 0 (1+ i)))
-                 ((>= i (min (+ size-orig s) size-new)))
-               (setf (aref ary-orig (+ i s)) (aref ary-new i)))))))
 
 
 (defmacro vvs-calc-within-L1 (val-type fun n va vb)

@@ -7,7 +7,6 @@
                           :string-designator)
   (:import-from :cl3a.utilities
                 :min-factor
-                :setf-array-range
                 :dvvv-calc-within-L1
                 :lvvv-calc-within-L1
                 :different-length-warn)
@@ -110,8 +109,10 @@
       (declare (type fixnum p))
       (dolist (r res)
         (declare (type (simple-array double-float (*)) r))
-        (setf-array-range vc p r)
-        (incf p (length r))))
+        (let ((nr (length r)))
+          (declare (type fixnum nr))
+          (setf (subseq vc p (+ p nr)) r)
+          (incf p nr))))
     vc))
 
 
@@ -137,6 +138,8 @@
       (declare (type fixnum p))
       (dolist (r res)
         (declare (type (simple-array long-float (*)) r))
-        (setf-array-range vc p r)
-        (incf p (length r))))
+        (let ((nr (length r)))
+          (declare (type fixnum nr))
+          (setf (subseq vc p (+ p nr)) r)
+          (incf p nr))))
     vc))
