@@ -19,10 +19,10 @@
   "Add two vectors between a*va and b*vb"
   (with-gensyms (nvec res i)
     `(let* ((,nvec (min ,nv (the fixnum (+ ,p ,n))))
-            (,res (make-array (list ,nvec) :element-type (quote ,val-type))))
+            (,res (make-array (list ,nvec) :element-type ',val-type)))
        (declare (type fixnum ,nvec)
                 (type (simple-array ,val-type (*)) ,res))
-       (dotimes-unroll (,i ,p 5 ,nvec)
+       (dotimes-unroll (,i ,p ,nvec)
          (setf (aref ,res ,i) (+ (* ,a (aref ,va ,i))
                                  (* ,b (aref ,vb ,i)))))
        ,res)))
