@@ -5,7 +5,8 @@
                           :proper-list
                           :proper-list-p
                           :string-designator)
-  (:export :ifloor
+  (:export :different-length-warn
+           :ifloor
            :min-factor
            :dotimes-unroll
            :dvvs-calc-within-L1
@@ -13,18 +14,19 @@
            :dvvv-calc-within-L1
            :lvvv-calc-within-L1
            :dvvv2-calc-within-L1
-           :lvvv2-calc-within-L1
-           :different-length-warn))
+           :lvvv2-calc-within-L1))
 (in-package :cl3a.utilities)
 
 
-(defparameter *L1-size* (the fixnum 32768))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defconstant +L1-size+ (the fixnum 32768))
+  (defconstant +unroll+ (the fixnum 5)))
 
 
 (declaim (inline different-length-warn))
 (defun different-length-warn (na nb)
   "Warn different lengths"
-  (declare (type fixnum na nb))
+  (declare (type integer na nb))
   (warn (format nil "Length of two vectors were different (~D and ~D). Shorter one is used." na nb)))
 
 
@@ -46,18 +48,18 @@
     (if (= m 0) (- x y) (- x m))))
 
 
-(defmacro dotimes-unroll ((i p u n) &body body)
-  "Loop for i from p to n with unrolling of u"
+(defmacro dotimes-unroll ((i p n) &body body)
+  "Loop for i from p to n with unrolling of +unroll+"
   (with-gensyms (nu maxi)
-    `(let ((,nu (min-factor ,n ,u)))
+    `(let ((,nu (min-factor ,n +unroll+)))
        (declare (type fixnum ,nu))
-       (cond ((< ,n ,u) (do ((,i ,p (1+ ,i)))
+       (cond ((< ,n +unroll+) (do ((,i ,p (1+ ,i)))
                             ((>= ,i ,n))
                           ,@body))
              (t (let ((,maxi
                        (do ((,i ,p (1+ ,i)))
                            ((>= ,i ,nu) (1- ,i))
-                         ,@(loop :repeat u
+                         ,@(loop :repeat +unroll+
                               :append (append body `((incf ,i)))))))
                   (declare (type fixnum ,maxi))
                   (when (< ,maxi ,n)
@@ -83,11 +85,11 @@
    vector vb (simple-array val-type (*)),
    and return scalar of val-type"
   (with-gensyms (tbl m nres k fzero res i ir nk)
-    `(let* ((,tbl (type-byte-length (quote ,val-type)))
-            (,m (ifloor *L1-size* ,tbl))  ; calc length at a time
+    `(let* ((,tbl (type-byte-length ',val-type))
+            (,m (ifloor +L1-size+ ,tbl))  ; calc length at a time
             (,nres (ifloor ,n ,m))  ; number of calc
             (,k (* ,nres ,m))
-            (,fzero (coerce 0.0 (quote ,val-type)))
+            (,fzero (coerce 0.0 ',val-type))
             (,res (if (> ,n ,k)  ; n = k if (mod n m) = 0
                       (make-list (1+ ,nres) :initial-element ,fzero)
                       (make-list ,nres :initial-element ,fzero))))
@@ -154,11 +156,11 @@
    scalar a and b of val-type,
    and return vector (simple-array val-type (*))"
   (with-gensyms (tbl m nres k fzero res i ir nk)
-    `(let* ((,tbl (type-byte-length (quote ,val-type)))
-            (,m (ifloor *L1-size* ,tbl))  ; calc length at a time
+    `(let* ((,tbl (type-byte-length ',val-type))
+            (,m (ifloor +L1-size+ ,tbl))  ; calc length at a time
             (,nres (ifloor ,n ,m))  ; number of calc
             (,k (* ,nres ,m))
-            (,fzero (make-array (list ,m) :element-type (quote ,val-type)))
+            (,fzero (make-array (list ,m) :element-type ',val-type))
             (,res (if (> ,n ,k)  ; n = k if (mod n m) = 0
                       (make-list (1+ ,nres) :initial-element ,fzero)
                       (make-list ,nres :initial-element ,fzero))))
@@ -231,11 +233,11 @@
    scalar a and b of val-type,
    and return two vectors (simple-array val-type (*))"
   (with-gensyms (tbl m nres k fzero res1 res2 i ir r1 r2 nk)
-    `(let* ((,tbl (type-byte-length (quote ,val-type)))
-            (,m (ifloor *L1-size* ,tbl))  ; calc length at a time
+    `(let* ((,tbl (type-byte-length ',val-type))
+            (,m (ifloor +L1-size+ ,tbl))  ; calc length at a time
             (,nres (ifloor ,n ,m))  ; number of calc
             (,k (* ,nres ,m))
-            (,fzero (make-array (list ,m) :element-type (quote ,val-type)))
+            (,fzero (make-array (list ,m) :element-type ',val-type))
             (,res1 (if (> ,n ,k)  ; n = k if (mod n m) = 0
                        (make-list (1+ ,nres) :initial-element ,fzero)
                        (make-list ,nres :initial-element ,fzero)))

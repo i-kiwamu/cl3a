@@ -19,12 +19,12 @@
   (with-gensyms (nvec n5 res i maxi i1 i2 i3 i4)
     `(let* ((,nvec (min ,nv (the fixnum (+ ,p ,n))))
             (,n5 (min-factor ,nvec 5))
-            (,res (coerce 0.0 (quote ,val-type))))
+            (,res (coerce 0.0 ',val-type)))
        (declare (type fixnum ,nvec ,n5)
                 (type ,val-type ,res))
        ;; Do NOT use dotimes-unroll macro for speed
        (cond
-         ((< ,nvec 5) (do ((,i ,p (+ ,i 1)))
+         ((< ,nvec 5) (do ((,i ,p (1+ ,i)))
                           ((>= ,i ,nvec))
                         (incf ,res (* (aref ,va ,i) (aref ,vb ,i)))))
          (t (let ((,maxi
@@ -42,7 +42,7 @@
                               (* (aref ,va ,i4) (aref ,vb ,i4)))))))
               (declare (type fixnum ,maxi))
               (when (< ,maxi ,nvec)
-                (do ((,i ,maxi (+ ,i 1)))
+                (do ((,i ,maxi (1+ ,i)))
                     ((>= ,i ,nvec))
                   (incf ,res (* (aref ,va ,i) (aref ,vb ,i))))))))
        ,res)))
