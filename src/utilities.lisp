@@ -7,6 +7,7 @@
                           :string-designator)
   (:export :ifloor
            :min-factor
+           :dotimes-unroll
            :dvvs-calc-within-L1
            :lvvs-calc-within-L1
            :dvvv-calc-within-L1
@@ -43,6 +44,26 @@
   (let* ((m (mod x y)))
     (declare (type integer m))
     (if (= m 0) (- x y) (- x m))))
+
+
+(defmacro dotimes-unroll ((i p u n) &body body)
+  "Loop for i from p to n with unrolling of u"
+  (with-gensyms (nu maxi)
+    `(let ((,nu (min-factor ,n ,u)))
+       (declare (type fixnum ,nu))
+       (cond ((< ,n ,u) (do ((,i ,p (1+ ,i)))
+                            ((>= ,i ,n))
+                          ,@body))
+             (t (let ((,maxi
+                       (do ((,i ,p (1+ ,i)))
+                           ((>= ,i ,nu) (1- ,i))
+                         ,@(loop :repeat u
+                              :append (append body `((incf ,i)))))))
+                  (declare (type fixnum ,maxi))
+                  (when (< ,maxi ,n)
+                    (do ((,i ,maxi (1+ ,i)))
+                        ((>= ,i ,n))
+                      ,@body))))))))
 
 
 (declaim (ftype (function (symbol) integer) type-byte-length))

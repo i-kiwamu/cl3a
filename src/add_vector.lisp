@@ -7,6 +7,7 @@
                           :string-designator)
   (:import-from :cl3a.utilities
                 :min-factor
+                :dotimes-unroll
                 :dvvv-calc-within-L1
                 :lvvv-calc-within-L1
                 :different-length-warn)
@@ -16,42 +17,14 @@
 
 (defmacro v+v-ker (val-type p n nv va vb a b)
   "Add two vectors between a*va and b*vb"
-  (with-gensyms (nvec n5 res i maxi i1 i2 i3 i4)
+  (with-gensyms (nvec res i)
     `(let* ((,nvec (min ,nv (the fixnum (+ ,p ,n))))
-            (,n5 (min-factor ,nvec 5))
             (,res (make-array (list ,nvec) :element-type (quote ,val-type))))
-       (declare (type fixnum ,nvec ,n5)
+       (declare (type fixnum ,nvec)
                 (type (simple-array ,val-type (*)) ,res))
-       (cond
-         ((or (>= ,p ,nv) (< ,p 0) (< ,nvec 0))
-          (warn (format nil "Position ~D is out of range of vectors with length of ~D." ,p ,nvec)))
-         ((< ,nvec 5) (do ((,i ,p (+ ,i 1)))
-                          ((>= ,i ,nvec))
-                        (setf (aref ,res ,i) (+ (* ,a (aref ,va ,i))
-                                                (* ,b (aref ,vb ,i))))))
-         (t (let ((,maxi
-                   (do ((,i ,p (+ ,i 5))
-                        (,i1 (the fixnum (+ ,p 1)) (the fixnum (+ ,i1 5)))
-                        (,i2 (the fixnum (+ ,p 2)) (the fixnum (+ ,i2 5)))
-                        (,i3 (the fixnum (+ ,p 3)) (the fixnum (+ ,i3 5)))
-                        (,i4 (the fixnum (+ ,p 4)) (the fixnum (+ ,i4 5))))
-                       ((>= ,i ,n5) ,i)
-                     (setf (aref ,res ,i)  (+ (* ,a (aref ,va ,i))
-                                              (* ,b (aref ,vb ,i))))
-                     (setf (aref ,res ,i1) (+ (* ,a (aref ,va ,i1))
-                                              (* ,b (aref ,vb ,i1))))
-                     (setf (aref ,res ,i2) (+ (* ,a (aref ,va ,i2))
-                                              (* ,b (aref ,vb ,i2))))
-                     (setf (aref ,res ,i3) (+ (* ,a (aref ,va ,i3))
-                                              (* ,b (aref ,vb ,i3))))
-                     (setf (aref ,res ,i4) (+ (* ,a (aref ,va ,i4))
-                                              (* ,b (aref ,vb ,i4)))))))
-              (declare (type fixnum ,maxi))
-              (when (< ,maxi ,nvec)
-                (do ((,i ,maxi (+ ,i 1)))
-                    ((>= ,i ,nvec))
-                  (setf (aref ,res ,i) (+ (* ,a (aref ,va ,i))
-                                          (* ,b (aref ,vb ,i)))))))))
+       (dotimes-unroll (,i ,p 5 ,nvec)
+         (setf (aref ,res ,i) (+ (* ,a (aref ,va ,i))
+                                 (* ,b (aref ,vb ,i)))))
        ,res)))
 
 
