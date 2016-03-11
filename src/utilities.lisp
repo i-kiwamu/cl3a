@@ -180,7 +180,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array double-float (*))
-                                      (simple-array double-float (*)))
+                                      (simple-array double-float (*))
+                                      double-float double-float)
                                      (simple-array double-float (*)))
                            fixnum
                            (simple-array double-float (*))
@@ -203,7 +204,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array long-float (*))
-                                      (simple-array long-float (*)))
+                                      (simple-array long-float (*))
+                                      long-float long-float)
                                      (simple-array long-float (*)))
                            fixnum
                            (simple-array long-float (*))
@@ -268,7 +270,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array double-float (*))
-                                      (simple-array double-float (*)))
+                                      (simple-array double-float (*))
+                                      double-float double-float)
                                      (values (simple-array double-float (*))
                                              (simple-array double-float (*))))
                            fixnum
@@ -293,7 +296,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array long-float (*))
-                                      (simple-array long-float (*)))
+                                      (simple-array long-float (*))
+                                      long-float long-float)
                                      (values (simple-array long-float (*))
                                              (simple-array long-float (*))))
                            fixnum
