@@ -338,6 +338,7 @@
 ;; mvv: get matrix and vector, and return vector
 ;; --------------------------------------------------
 
+;; TODO: if m = 0 (i.e. mi > +L1-size+), L1 cache misses happen in each row
 (defmacro mvv-calc-within-L1 (val-type fun nr nc ma vb)
   "Divide data into small parts (< L1 cache size), and calculate.
    fun should have arguments of 
@@ -350,7 +351,7 @@
     `(let* ((,tbl (type-byte-length ',val-type))
             (,mi (* ,nc ,tbl))
             (,m (ifloor +L1-size+ ,mi))  ; calc row length at a time
-            (,nres (ifloor ,nr ,m))  ; number of calc in row
+            (,nres (if (= ,m 0) 1 (ifloor ,nr ,m)))  ; number of calc in row
             (,k (min-factor ,nr ,m))
             (,fzero (make-array (list ,m) :element-type ',val-type))
             (,res (if (> ,nr ,k)  ; n = k if (mod n m) = 0
@@ -363,16 +364,16 @@
             (,ir 0 (the fixnum (1+ ,ir))))
            ((>= (the fixnum ,i) ,k))
          (setf (nth ,ir ,res)
-               (funcall ,fun ,i ,m ,nr ,ma ,vb)))
+               (funcall ,fun ,i ,m ,nr ,nc ,ma ,vb)))
        (when (> ,nr ,k)
          (let ((,nk (- ,nr ,k)))
            (declare (type fixnum ,nk))
            (setf (nth ,nres ,res)
-                 (funcall ,fun ,k ,nk ,nr ,ma ,vb))))
+                 (funcall ,fun ,k ,nk ,nr ,nc ,ma ,vb))))
        ,res)))
 
 
-(declaim (ftype (function ((function (fixnum fixnum fixnum
+(declaim (ftype (function ((function (fixnum fixnum fixnum fixnum
                                       (simple-array double-float (* *))
                                       (simple-array double-float (*)))
                                      (simple-array double-float (*)))
@@ -383,7 +384,7 @@
                 dmvv-calc-within-L1))
 (defun dmvv-calc-within-L1 (fun nr nc ma vb)
   (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type (function (fixnum fixnum fixnum
+           (type (function (fixnum fixnum fixnum fixnum
                             (simple-array double-float (* *))
                             (simple-array double-float (*)))
                            (simple-array double-float (*))) fun)
@@ -393,7 +394,7 @@
   (mvv-calc-within-L1 double-float fun nr nc ma vb))
 
 
-(declaim (ftype (function ((function (fixnum fixnum fixnum
+(declaim (ftype (function ((function (fixnum fixnum fixnum fixnum
                                       (simple-array long-float (* *))
                                       (simple-array long-float (*)))
                                      (simple-array long-float (*)))
@@ -404,7 +405,7 @@
                 lmvv-calc-within-L1))
 (defun lmvv-calc-within-L1 (fun nr nc ma vb)
   (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type (function (fixnum fixnum fixnum
+           (type (function (fixnum fixnum fixnum fixnum
                             (simple-array long-float (* *))
                             (simple-array long-float (*)))
                            (simple-array long-float (*))) fun)

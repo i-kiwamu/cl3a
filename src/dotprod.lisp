@@ -10,7 +10,7 @@
                 :dvvs-calc-within-L1
                 :lvvs-calc-within-L1
                 :different-length-warn)
-  (:export :dv*v :lv*v))
+  (:export :dv*v-ker :lv*v-ker :dv*v :lv*v))
 (in-package :cl3a.dotprod)
 
 

@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage cl3a.mvmult
-  (:use :cl :alexandria :trivial-types :cl-slice)
+  (:use :cl :alexandria :trivial-types)
   (:shadowing-import-from :trivial-types
                           :proper-list
                           :proper-list-p
@@ -11,65 +11,56 @@
                 :dmvv-calc-within-L1
                 :lmvv-calc-within-L1
                 :different-length-warn)
-  (:import-from :cl3a.dotprod
-                :dv*v
-                :lv*v)
   (:export :dm*v :lm*v))
 (in-package :cl3a.mvmult)
 
 
+(defmacro m*v-ker (val-type p n nr nc ma vb)
+  "Multiply matrix and vector"
+  (with-gensyms (nvec iend res i ip j)
+    `(let* ((,nvec (min ,nr ,n))
+            (,iend (min ,nr (the fixnum (+ ,p ,n))))
+            (,res (make-array (list ,nvec) :element-type ',val-type)))
+       (declare (type fixnum ,nvec ,iend)
+                (type (simple-array ,val-type (*)) ,res))
+       (do ((,i ,p (1+ ,i)))
+           ((>= ,i ,iend))
+         (let ((,ip (- (the fixnum ,i) ,p)))
+           (declare (type fixnum ,ip))
+           (dotimes-unroll (,j 0 ,nc)
+             (setf (aref ,res ,ip)
+                   (* (aref ,ma ,i ,j) (aref ,vb ,j))))))
+       ,res)))
+
+
 (declaim (inline dm*v-ker)
-         (ftype (function (fixnum fixnum fixnum
+         (ftype (function (fixnum fixnum fixnum fixnum
                            (simple-array double-float (* *))
                            (simple-array double-float (*)))
                           (simple-array double-float (*)))
                 dm*v-ker))
-(defun dm*v-ker (p n nr ma vb)
+(defun dm*v-ker (p n nr nc ma vb)
   "Multiply matrix and vector of double-float"
   (declare (optimize (speed 3) (debug 0) (safety 0))
            (type fixnum p n nr)
            (type (simple-array double-float (* *)) ma)
            (type (simple-array double-float (*)) vb))
-  (flet ((calc (vec) (dv*v vec vb)))
-    (let* ((nvec (min nr n))
-           (iend (min nr (the fixnum (+ p n))))
-           (res (make-array (list nvec) :element-type 'double-float)))
-         (declare (type fixnum nvec iend)
-                  (type (simple-array double-float (*)) res))
-         (dotimes-unroll (i p iend)
-           (let ((ip (- (the fixnum i) p))
-                 (va (slice ma (the fixnum i) t)))
-             (declare (type fixnum ip)
-                      (type (simple-array double-float (*)) va))
-             (setf (aref res ip) (calc va))))
-         res)))
+  (m*v-ker double-float p n nr nc ma vb))
 
 
 (declaim (inline lm*v-ker)
-         (ftype (function (fixnum fixnum fixnum
+         (ftype (function (fixnum fixnum fixnum fixnum
                            (simple-array long-float (* *))
                            (simple-array long-float (*)))
                           (simple-array long-float (*)))
                 lm*v-ker))
-(defun lm*v-ker (p n nr ma vb)
+(defun lm*v-ker (p n nr nc ma vb)
   "Multiply matrix and vector of long-float"
   (declare (optimize (speed 3) (debug 0) (safety 0))
            (type fixnum p n nr)
            (type (simple-array long-float (* *)) ma)
            (type (simple-array long-float (*)) vb))
-  (flet ((calc (vec) (lv*v vec vb)))
-    (let* ((nvec (min nr n))
-           (iend (min nr (the fixnum (+ p n))))
-           (res (make-array (list nvec) :element-type 'long-float)))
-         (declare (type fixnum nvec iend)
-                  (type (simple-array long-float (*)) res))
-         (dotimes-unroll (i p iend)
-           (let ((ip (- (the fixnum i) p))
-                 (va (slice ma (the fixnum i) t)))
-             (declare (type fixnum ip)
-                      (type (simple-array long-float (*)) va))
-             (setf (aref res ip) (calc va))))
-         res)))
+  (m*v-ker long-float p n nr nc ma vb))
 
 
 (declaim (ftype (function ((simple-array double-float (* *))
