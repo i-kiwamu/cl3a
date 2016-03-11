@@ -9,8 +9,11 @@
                 :dv+v :lv+v)
   (:import-from :cl3a.rotate
                 :drotate :lrotate)
+  (:import-from :cl3a.mvmult
+                :dm*v :lm*v)
   (:export :dv*v :lv*v
            :dnorm :lnorm
            :dv+v :lv+v
-           :drotate :lrotate))
+           :drotate :lrotate
+           :dm*v :lm*v))
 (in-package :cl3a)

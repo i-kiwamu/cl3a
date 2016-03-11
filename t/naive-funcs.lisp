@@ -1,11 +1,12 @@
 (in-package :cl-user)
 (defpackage naive-funcs
-  (:use :cl :prove :cl3a)
+  (:use :cl :prove :cl3a :cl-slice)
   (:nicknames naive)
   (:export :dv*v
            :dnorm
            :dv+v
-           :drotate))
+           :drotate
+           :dm*v))
 (in-package #:naive-funcs)
 
 
@@ -65,3 +66,19 @@
       (setf (aref vd i) (- (* c (aref vb i))
                            (* s (aref va i)))))
     (values vc vd)))
+
+
+(declaim (ftype (function ((simple-array double-float (* *))
+                           (simple-array double-float (*)))
+                          (simple-array double-float (*)))
+                dm*v))
+(defun dm*v (ma vb)
+  (declare (type (simple-array double-float (* *)) ma)
+           (type (simple-array double-float (*)) vb))
+  (let* ((nr (array-dimension ma 0))
+         (res (make-array (list nr) :element-type 'double-float)))
+    (dotimes (i nr)
+      (let ((va (slice ma i t)))
+        (declare (type (simple-array double-float (*)) va))
+        (setf (aref res i) (dv*v va vb))))
+    res))

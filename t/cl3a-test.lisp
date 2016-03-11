@@ -4,9 +4,6 @@
 (in-package #:cl3a-test)
 
 
-(plan 4)
-
-
 (defun ddotprod-test (n)
   (declare (type integer n))
   (let ((va (make-array (list n) :element-type 'double-float))
@@ -19,7 +16,6 @@
           (res2 (coerce (naive:dv*v va vb) 'single-float)))
       (declare (type single-float res1 res2))
       (= res1 res2))))
-(ok (ddotprod-test 5000))
 
 
 (defun dnorm-test (n)
@@ -32,7 +28,6 @@
           (res2 (coerce (naive:dnorm va) 'single-float)))
       (declare (type single-float res1 res2))
       (= res1 res2))))
-(ok (dnorm-test 5000))
 
 
 (defun dadd-test (n)
@@ -51,13 +46,14 @@
     (let ((res1 (cl3a:dv+v a va b vb))
           (res2 (naive:dv+v a va b vb)))
       (declare (type (simple-array double-float (*)) res1 res2))
-      (dotimes (i n)
-        (let ((r1 (coerce (aref res1 i) 'single-float))
-              (r2 (coerce (aref res2 i) 'single-float)))
-          (when (= r1 r2)
-            (setf test (and test t))))))
+      (block exit
+        (dotimes (i n)
+          (let ((r1 (coerce (aref res1 i) 'single-float))
+                (r2 (coerce (aref res2 i) 'single-float)))
+            (when (/= r1 r2)
+              (setf test nil)
+              (return-from exit))))))
     test))
-(ok (dadd-test 5000))
 
 
 (defun drotate-test (n)
@@ -79,14 +75,47 @@
       (declare (type (simple-array double-float (*)) res1c res1d))
       (multiple-value-bind (res2c res2d) (naive:drotate va vb c s)
         (declare (type (simple-array double-float (*)) res2c res2d))
-        (dotimes (i n)
-          (let ((r1c (coerce (aref res1c i) 'single-float))
-                (r1d (coerce (aref res1d i) 'single-float))
-                (r2c (coerce (aref res2c i) 'single-float))
-                (r2d (coerce (aref res2d i) 'single-float)))
-            (when (and (= r1c r2c) (= r1d r2d))
-              (setf test (and test t)))))))
+        (block exit
+          (dotimes (i n)
+            (let ((r1c (coerce (aref res1c i) 'single-float))
+                  (r1d (coerce (aref res1d i) 'single-float))
+                  (r2c (coerce (aref res2c i) 'single-float))
+                  (r2d (coerce (aref res2d i) 'single-float)))
+              (when (or (/= r1c r2c) (/= r1d r2d))
+                (setf test nil)
+                (return-from exit)))))))
     test))
-(ok (drotate-test 5000))
 
+
+(defun dm*v-test (n)
+  (declare (type integer n))
+  (let* ((ma (make-array (list n n) :element-type 'double-float))
+         (vb (make-array (list n) :element-type 'double-float))
+         (test t))
+    (declare (type (simple-array double-float (* *)) ma)
+             (type (simple-array double-float (*)) vb)
+             (type boolean test))
+    (dotimes (i n)
+      (dotimes (j n)
+        (setf (aref ma i j) (random 1d0)))
+      (setf (aref vb i) (random 1d0)))
+    (let ((res1 (cl3a:dm*v ma vb))
+          (res2 (naive:dm*v ma vb)))
+      (declare (type (simple-array double-float (*)) res1 res2))
+      (block exit
+        (dotimes (i n)
+          (let ((r1 (coerce (aref res1 i) 'single-float))
+                (r2 (coerce (aref res2 i) 'single-float)))
+            (when (/= r1 r2)
+              (setf test nil)
+              (return-from exit))))))
+    test))
+
+
+(plan 5)
+(ok (ddotprod-test 5000))
+(ok (dnorm-test 5000))
+(ok (dadd-test 5000))
+(ok (drotate-test 5000))
+(ok (dm*v-test 500))
 (finalize)

@@ -14,7 +14,9 @@
            :dvvv-calc-within-L1
            :lvvv-calc-within-L1
            :dvvv2-calc-within-L1
-           :lvvv2-calc-within-L1))
+           :lvvv2-calc-within-L1
+           :dmvv-calc-within-L1
+           :lmvv-calc-within-L1))
 (in-package :cl3a.utilities)
 
 
@@ -76,6 +78,10 @@
     (double-float 8)
     (long-float 16)))
 
+
+;; --------------------------------------------------
+;; vvs: get two vectors, and return scalar
+;; --------------------------------------------------
 
 (defmacro vvs-calc-within-L1 (val-type fun n va vb)
   "Divide data into small parts (< L1 cache size), and calculate.
@@ -147,6 +153,10 @@
   (vvs-calc-within-L1 long-float fun n va vb))
 
 
+;; --------------------------------------------------
+;; vvv: get two vectors, and return vector
+;; --------------------------------------------------
+
 (defmacro vvv-calc-within-L1 (val-type fun n va vb a b)
   "Divide data into small parts (< L1 cache size), and calculate.
    fun should have arguments of 
@@ -180,7 +190,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array double-float (*))
-                                      (simple-array double-float (*)))
+                                      (simple-array double-float (*))
+                                      double-float double-float)
                                      (simple-array double-float (*)))
                            fixnum
                            (simple-array double-float (*))
@@ -203,7 +214,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array long-float (*))
-                                      (simple-array long-float (*)))
+                                      (simple-array long-float (*))
+                                      long-float long-float)
                                      (simple-array long-float (*)))
                            fixnum
                            (simple-array long-float (*))
@@ -223,6 +235,10 @@
            (type (simple-array long-float (*)) va vb))
   (vvv-calc-within-L1 long-float fun n va vb a b))
 
+
+;; --------------------------------------------------
+;; vvv2: get two vectors, and return two vector
+;; --------------------------------------------------
 
 (defmacro vvv2-calc-within-L1 (val-type fun n va vb a b)
   "Divide data into small parts (< L1 cache size), and calculate.
@@ -268,7 +284,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array double-float (*))
-                                      (simple-array double-float (*)))
+                                      (simple-array double-float (*))
+                                      double-float double-float)
                                      (values (simple-array double-float (*))
                                              (simple-array double-float (*))))
                            fixnum
@@ -293,7 +310,8 @@
 
 (declaim (ftype (function ((function (fixnum fixnum fixnum
                                       (simple-array long-float (*))
-                                      (simple-array long-float (*)))
+                                      (simple-array long-float (*))
+                                      long-float long-float)
                                      (values (simple-array long-float (*))
                                              (simple-array long-float (*))))
                            fixnum
@@ -314,3 +332,83 @@
            (type long-float a b)
            (type (simple-array long-float (*)) va vb))
   (vvv2-calc-within-L1 long-float fun n va vb a b))
+
+
+;; --------------------------------------------------
+;; mvv: get matrix and vector, and return vector
+;; --------------------------------------------------
+
+(defmacro mvv-calc-within-L1 (val-type fun nr nc ma vb)
+  "Divide data into small parts (< L1 cache size), and calculate.
+   fun should have arguments of 
+   position (fixnum), length for calc in row (fixnum), 
+   matrix dimension nr and nc (fixnum),
+   matrix ma (simple-array val-type (* *)),
+   vector vb (simple-array val-type (*)),
+   and return vector (simple-array val-type (*))"
+  (with-gensyms (tbl mi m nres k fzero res i ir nk)
+    `(let* ((,tbl (type-byte-length ',val-type))
+            (,mi (* ,nc ,tbl))
+            (,m (ifloor +L1-size+ ,mi))  ; calc row length at a time
+            (,nres (ifloor ,nr ,m))  ; number of calc in row
+            (,k (min-factor ,nr ,m))
+            (,fzero (make-array (list ,m) :element-type ',val-type))
+            (,res (if (> ,nr ,k)  ; n = k if (mod n m) = 0
+                      (make-list (1+ ,nres) :initial-element ,fzero)
+                      (make-list ,nres :initial-element ,fzero))))
+       (declare (type fixnum ,tbl ,mi ,m ,nres ,k)
+                (type (simple-array ,val-type (*)) ,fzero)
+                (type (proper-list (simple-array ,val-type (*))) ,res))
+       (do ((,i 0 (the fixnum (+ ,i ,m)))
+            (,ir 0 (the fixnum (1+ ,ir))))
+           ((>= (the fixnum ,i) ,k))
+         (setf (nth ,ir ,res)
+               (funcall ,fun ,i ,m ,nr ,ma ,vb)))
+       (when (> ,nr ,k)
+         (let ((,nk (- ,nr ,k)))
+           (declare (type fixnum ,nk))
+           (setf (nth ,nres ,res)
+                 (funcall ,fun ,k ,nk ,nr ,ma ,vb))))
+       ,res)))
+
+
+(declaim (ftype (function ((function (fixnum fixnum fixnum
+                                      (simple-array double-float (* *))
+                                      (simple-array double-float (*)))
+                                     (simple-array double-float (*)))
+                           fixnum fixnum
+                           (simple-array double-float (* *))
+                           (simple-array double-float (*)))
+                          (proper-list (simple-array double-float (*))))
+                dmvv-calc-within-L1))
+(defun dmvv-calc-within-L1 (fun nr nc ma vb)
+  (declare (optimize (speed 3) (debug 0) (safety 0))
+           (type (function (fixnum fixnum fixnum
+                            (simple-array double-float (* *))
+                            (simple-array double-float (*)))
+                           (simple-array double-float (*))) fun)
+           (type fixnum nr nc)
+           (type (simple-array double-float (* *)) ma)
+           (type (simple-array double-float (*)) vb))
+  (mvv-calc-within-L1 double-float fun nr nc ma vb))
+
+
+(declaim (ftype (function ((function (fixnum fixnum fixnum
+                                      (simple-array long-float (* *))
+                                      (simple-array long-float (*)))
+                                     (simple-array long-float (*)))
+                           fixnum fixnum
+                           (simple-array long-float (* *))
+                           (simple-array long-float (*)))
+                          (proper-list (simple-array long-float (*))))
+                lmvv-calc-within-L1))
+(defun lmvv-calc-within-L1 (fun nr nc ma vb)
+  (declare (optimize (speed 3) (debug 0) (safety 0))
+           (type (function (fixnum fixnum fixnum
+                            (simple-array long-float (* *))
+                            (simple-array long-float (*)))
+                           (simple-array long-float (*))) fun)
+           (type fixnum nr nc)
+           (type (simple-array long-float (* *)) ma)
+           (type (simple-array long-float (*)) vb))
+  (mvv-calc-within-L1 long-float fun nr nc ma vb))

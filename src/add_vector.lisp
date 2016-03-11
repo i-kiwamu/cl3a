@@ -17,14 +17,17 @@
 
 (defmacro v+v-ker (val-type p n nv va vb a b)
   "Add two vectors between a*va and b*vb"
-  (with-gensyms (nvec res i)
-    `(let* ((,nvec (min ,nv (the fixnum (+ ,p ,n))))
+  (with-gensyms (nvec iend res i ip)
+    `(let* ((,nvec (min ,nv ,n))
+            (,iend (min ,nv (the fixnum (+ ,p ,n))))
             (,res (make-array (list ,nvec) :element-type ',val-type)))
-       (declare (type fixnum ,nvec)
+       (declare (type fixnum ,nvec ,iend)
                 (type (simple-array ,val-type (*)) ,res))
-       (dotimes-unroll (,i ,p ,nvec)
-         (setf (aref ,res ,i) (+ (* ,a (aref ,va ,i))
-                                 (* ,b (aref ,vb ,i)))))
+       (dotimes-unroll (,i ,p ,iend)
+         (let ((,ip (- (the fixnum ,i) ,p)))
+           (declare (type fixnum ,ip))
+           (setf (aref ,res ,ip) (+ (* ,a (aref ,va ,i))
+                                    (* ,b (aref ,vb ,i))))))
        ,res)))
 
 
