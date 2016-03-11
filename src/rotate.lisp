@@ -18,17 +18,20 @@
 (defmacro rotate-ker (val-type p n nv va vb c s)
   "Rotate two vectors (va & vb) with cos and sin,
    and return new two vectors"
-  (with-gensyms (nvec res1 res2 i)
-    `(let* ((,nvec (min ,nv (the fixnum (+ ,p ,n))))
+  (with-gensyms (nvec iend res1 res2 i ip)
+    `(let* ((,nvec (min ,nv ,n))
+            (,iend (min ,nv (the fixnum (+ ,p ,n))))
             (,res1 (make-array (list ,nvec) :element-type ',val-type))
             (,res2 (make-array (list ,nvec) :element-type ',val-type)))
-       (declare (type fixnum ,nvec)
+       (declare (type fixnum ,nvec ,iend)
                 (type (simple-array ,val-type (*)) ,res1 ,res2))
-       (dotimes-unroll (,i ,p ,nvec)
-         (setf (aref ,res1 ,i) (+ (* ,c (aref ,va ,i))
-                                  (* ,s (aref ,vb ,i))))
-         (setf (aref ,res2 ,i) (- (* ,c (aref ,vb ,i))
-                                  (* ,s (aref ,va ,i)))))
+       (dotimes-unroll (,i ,p ,iend)
+         (let ((,ip (- (the fixnum ,i) ,p)))
+           (declare (type fixnum ,ip))
+           (setf (aref ,res1 ,ip) (+ (* ,c (aref ,va ,i))
+                                     (* ,s (aref ,vb ,i))))
+           (setf (aref ,res2 ,ip) (- (* ,c (aref ,vb ,i))
+                                     (* ,s (aref ,va ,i))))))
        (values ,res1 ,res2))))
 
 

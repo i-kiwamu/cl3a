@@ -5,10 +5,11 @@
 
 (defsystem cl3a-test
     :description "test for cl3a"
-    :depends-on (:cl3a :prove)
+    :depends-on (:cl3a :prove :cl-slice)
     :components ((:module "t"
                           :components
-                          ((:test-file "cl3a-test" :depends-on ("naive-funcs"))
+                          ((:test-file "cl3a-test"
+                            :depends-on ("naive-funcs"))
                            (:file "naive-funcs"))))
     :perform (test-op :after (op c)
                       (funcall (intern #.(string :run-test-system)
