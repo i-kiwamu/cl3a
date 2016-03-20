@@ -2,9 +2,7 @@
 *.fasl
 *.lisp-temp
 *.numbers
-bench/dotprod/bench-cl3a
-bench/dotprod/bench-blas
-bench/dotprod/bench-eigen
-bench/mvmult/bench-cl3a
-bench/mvmult/bench-blas
-bench/mvmult/bench-eigen
+bench/*/bench-cl3a
+bench/*/bench-blas
+bench/*/bench-eigen
+

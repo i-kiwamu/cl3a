@@ -10,18 +10,20 @@ int bench(int n, int m) {
     std::random_device rnd;
     std::mt19937 mt(rnd());
     std::uniform_real_distribution<> rand1(0.0, 1.0);
-    VectorXd va(n);
+    MatrixXd ma(n, n);
     VectorXd vb(n);
-    double x;
+    VectorXd vc(n);
 
     for (int i = 0; i < n; ++i) {
-        va(i) = rand1(mt);
+        for (int j = 0; j < n; ++j) {
+            ma(i, j) = rand1(mt);
+        }
         vb(i) = rand1(mt);
     }
 
     clock_t start = clock();
     for (int i = 0; i < m; ++i) {
-        x = va.dot(vb);
+        vc = ma * vb;
     }
     clock_t end = clock();
     std::cout << "Total time (" << (int)m << " repeat): "
@@ -31,7 +33,8 @@ int bench(int n, int m) {
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
-        std::cout << "Require exactly 2 arguments, but recieves " << (int)argc << "arguments!\n";
+        std::cout << "Require exactly 2 arguments, but recieves "
+                  << (int)argc << "arguments!\n";
         return 1;
     }
     int n = atoi(argv[1]);
