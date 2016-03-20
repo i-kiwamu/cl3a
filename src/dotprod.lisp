@@ -6,11 +6,12 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
+                :+L1-size+
+                :ifloor
                 :min-factor
-                :dvvs-calc-within-L1
-                :lvvs-calc-within-L1
+                :type-byte-length
                 :different-length-warn)
-  (:export :dv*v-ker :lv*v-ker :dv*v :lv*v))
+  (:export :dv*v :lv*v))
 (in-package :cl3a.dotprod)
 
 
@@ -77,6 +78,31 @@
   (v*v-ker long-float p n nvec va vb))
 
 
+(defmacro v*v (val-type fun va vb)
+  "Dot product within L1 cache size"
+  (with-gensyms (na nb nvec tbl m k res i nk)
+    `(let* ((,na (length ,va))
+            (,nb (length ,vb))
+            (,nvec (cond ((/= ,na ,nb) (different-length-warn ,na ,nb)
+                                       (min ,na ,nb))
+                        (t ,na)))
+            (,tbl (type-byte-length ',val-type))
+            (,m (ifloor +L1-size+ ,tbl))
+            (,k (min-factor ,nvec ,m))
+            (,res (coerce 0.0 ',val-type)))
+       (declare (type fixnum ,na ,nb ,nvec ,tbl ,m ,k)
+                (type ,val-type ,res))
+       (do ((,i 0 (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,k))
+         (incf ,res (funcall ,fun ,i ,m ,nvec ,va ,vb)))
+       (when (> ,nvec ,k)
+         (let ((,nk (- ,nvec ,k)))
+           (declare (type fixnum ,nk))
+           (incf ,res (funcall ,fun ,k ,nk ,nvec ,va ,vb))))
+       ,res)))
+
+
+
 (declaim (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
                           double-float)
@@ -85,15 +111,7 @@
   "Dot product with two double-float vectors va and vb"
   (declare (optimize (speed 3))
            (type (simple-array double-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nvec (cond ((/= na nb) (different-length-warn na nb)
-                                 (min na nb))
-                     (t na)))
-         (res (dvvs-calc-within-L1 #'dv*v-ker nvec va vb)))
-    (declare (type fixnum na nb nvec)
-             (type (proper-list double-float) res))
-    (apply #'+ res)))
+  (v*v double-float #'dv*v-ker va vb))
 
 
 (declaim (ftype (function ((simple-array long-float (*))
@@ -104,12 +122,4 @@
   "Dot product with two double-float vectors va and vb"
   (declare (optimize (speed 3))
            (type (simple-array long-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nvec (cond ((/= na nb) (different-length-warn na nb)
-                                 (min na nb))
-                     (t na)))
-         (res (lvvs-calc-within-L1 #'lv*v-ker nvec va vb)))
-    (declare (type fixnum na nb nvec)
-             (type (proper-list long-float) res))
-    (apply #'+ res)))
+  (v*v long-float #'lv*v-ker va vb))

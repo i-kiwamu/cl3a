@@ -6,10 +6,11 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
+                :+L1-size+
+                :ifloor
                 :min-factor
+                :type-byte-length
                 :dotimes-unroll
-                :dvvv-calc-within-L1
-                :lvvv-calc-within-L1
                 :different-length-warn)
   (:export :dv+v :lv+v))
 (in-package :cl3a.add-vector)
@@ -20,7 +21,7 @@
   (with-gensyms (nv iend res i ip)
     `(let* ((,nv (min ,nvec ,n))
             (,iend (min ,nvec (the fixnum (+ ,p ,n))))
-            (,res (make-array (list ,nv) :element-type ',val-type)))
+            (,res (make-array ,nv :element-type ',val-type)))
        (declare (type fixnum ,nv ,iend)
                 (type (simple-array ,val-type (*)) ,res))
        (dotimes-unroll (,i ,p ,iend)
@@ -63,33 +64,50 @@
   (v+v-ker long-float p n nvec va vb a b))
 
 
+(defmacro v+v (val-type fun a va b vb)
+  "Add two vectors within L1 cache-size"
+  (with-gensyms (na nb nvec tbl m k vc i res ir ii nk)
+    `(let* ((,na (length ,va))
+            (,nb (length ,vb))
+            (,nvec (cond ((/= ,na ,nb) (different-length-warn ,na ,nb)
+                                       (min ,na ,nb))
+                         (t ,na)))
+            (,tbl (type-byte-length ',val-type))
+            (,m (ifloor +L1-size+ ,tbl))
+            (,k (min-factor ,nvec ,m))
+            (,vc (make-array ,nvec :element-type ',val-type)))
+       (declare (type fixnum ,na ,nb ,nvec ,tbl ,m ,k)
+                (type (simple-array ,val-type (*)) ,vc))
+       (do ((,i 0 (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,k))
+         (let ((,res (funcall ,fun ,i ,m ,nvec ,va ,vb ,a ,b)))
+           (declare (type (simple-array ,val-type (*)) ,res))
+           (dotimes (,ir ,m)
+             (let ((,ii (+ ,ir ,i)))
+               (declare (type fixnum ,ii))
+               (setf (aref ,vc ,ii) (aref ,res ,ir))))))
+       (when (> ,nvec ,k)
+         (let* ((,nk (- ,nvec ,k))
+                (,res (funcall ,fun ,k ,nk ,nvec ,va ,vb ,a ,b)))
+           (declare (type fixnum ,nk)
+                    (type (simple-array ,val-type (*)) ,res))
+           (do ((,i ,k (1+ ,i))
+                (,ir 0 (1+ ,ir)))
+               ((>= ,i ,nvec))
+             (setf (aref ,vc ,i) (aref ,res ,ir)))))
+       ,vc)))
+
+
 (declaim (ftype (function (double-float (simple-array double-float (*))
                            double-float (simple-array double-float (*)))
                           (simple-array double-float (*)))
                 dv+v))
 (defun dv+v (a va b vb)
-  "Dot product with two double-float vectors va and vb"
+  "Add two double-float vectors va and vb"
   (declare (optimize (speed 3))
            (type double-float a b)
            (type (simple-array double-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nvec (cond ((/= na nb) (different-length-warn na nb)
-                                 (min na nb))
-                     (t na)))
-         (res (dvvv-calc-within-L1 #'dv+v-ker nvec va vb a b))
-         (vc (make-array (list nvec) :element-type 'double-float))
-         (p 0))
-    (declare (type fixnum na nb nvec p)
-             (type (proper-list (simple-array double-float (*))) res)
-             (type (simple-array double-float (*)) vc))
-    (dolist (r res)
-      (declare (type (simple-array double-float (*)) r))
-      (let ((nr (length r)))
-        (declare (type fixnum nr))
-        (setf (subseq vc p (+ p nr)) r)
-        (incf p nr)))
-    vc))
+  (v+v double-float #'dv+v-ker a va b vb))
 
 
 (declaim (ftype (function (long-float (simple-array long-float (*))
@@ -97,25 +115,8 @@
                           (simple-array long-float (*)))
                 dv+v))
 (defun lv+v (a va b vb)
-  "Dot product with two long-float vectors va and vb"
+  "Add two long-float vectors va and vb"
   (declare (optimize (speed 3))
            (type long-float a b)
            (type (simple-array long-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nvec (cond ((/= na nb) (different-length-warn na nb)
-                                 (min na nb))
-                     (t na)))
-         (res (dvvv-calc-within-L1 #'lv+v-ker nvec va vb a b))
-         (vc (make-array (list nvec) :element-type 'long-float)))
-    (declare (type fixnum na nb nvec)
-             (type (proper-list (simple-array long-float (*))) res))
-    (let ((p 0))
-      (declare (type fixnum p))
-      (dolist (r res)
-        (declare (type (simple-array long-float (*)) r))
-        (let ((nr (length r)))
-          (declare (type fixnum nr))
-          (setf (subseq vc p (+ p nr)) r)
-          (incf p nr))))
-    vc))
+  (v+v long-float #'lv+v-ker a va b vb))
