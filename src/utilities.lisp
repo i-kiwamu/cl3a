@@ -8,6 +8,7 @@
   (:export :+L1-size+
            :different-length-warn
            :ifloor
+           :ifloor-sqrt
            :min-factor
            :dotimes-unroll
            :type-byte-length))
@@ -39,6 +40,19 @@
 
 
 (declaim (ftype (function (integer integer &rest integer) integer)
+                ifloor-sqrt))
+(defun ifloor-sqrt (x y0 &rest ys)
+  "Take integer part of floor function"
+  (declare (type integer x y0)
+           (type (proper-list integer) ys))
+  (let* ((y (reduce #'* ys :initial-value y0))
+         (m (mod x y))
+         (x0 (- x m)))
+    (declare (type integer y m x0))
+    (if (= m 0) (isqrt (/ x y)) (isqrt (/ x0 y)))))
+
+
+(declaim (ftype (function (integer integer &rest integer) integer)
                 min-factor))
 (defun min-factor (x y0 &rest ys)
   (declare (type integer x y0)
@@ -59,9 +73,10 @@
                                 ,@body))
              (t (let ((,maxi
                        (do ((,i ,p (1+ ,i)))
-                           ((>= ,i ,nu) (1- ,i))
+                           ((>= ,i ,nu) ,i)
                          ,@(loop :repeat +unroll+
-                              :append (append body `((incf ,i)))))))
+                              :append (append body `((incf ,i))))
+                         (decf ,i))))
                   (declare (type fixnum ,maxi))
                   (when (< ,maxi ,n)
                     (do ((,i ,maxi (1+ ,i)))

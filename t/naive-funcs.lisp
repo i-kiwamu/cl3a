@@ -1,12 +1,12 @@
 (in-package :cl-user)
 (defpackage naive-funcs
-  (:use :cl :prove :cl3a :cl-slice)
+  (:use :cl :prove :cl3a)
   (:nicknames naive)
-  (:export :dv*v
-           :dnorm
-           :dv+v
-           :drotate
-           :dm*v))
+  (:export :dv*v-naive
+           :dnorm-naive
+           :dv+v-naive
+           :drotate-naive
+           :dm*v-naive))
 (in-package #:naive-funcs)
 
 
@@ -14,19 +14,20 @@
                            (simple-array double-float (*)))
                           double-float)
                 dv*v))
-(defun dv*v (va vb)
+(defun dv*v-naive (va vb)
   (declare (type (simple-array double-float (*)) va vb))
   (let ((nv (min (length va) (length vb)))
         (res 0d0))
     (declare (type fixnum nv))
-    (dotimes (i nv res)
-      (incf res (* (aref va i) (aref vb i))))))
+    (dotimes (i nv)
+      (incf res (* (aref va i) (aref vb i))))
+    res))
 
 
 (declaim (ftype (function ((simple-array double-float (*)))
                           double-float)
                 dnorm))
-(defun dnorm (va)
+(defun dnorm-naive (va)
   (declare (type (simple-array double-float (*)) va))
   (sqrt (dv*v va va)))
 
@@ -35,11 +36,11 @@
                            double-float (simple-array double-float (*)))
                           (simple-array double-float (*)))
                 dv+v))
-(defun dv+v (a va b vb)
+(defun dv+v-naive (a va b vb)
   (declare (type (simple-array double-float (*)) va vb)
            (type double-float a b))
   (let* ((nv (min (length va) (length vb)))
-         (res (make-array (list nv) :element-type 'double-float)))
+         (res (make-array nv :element-type 'double-float)))
     (dotimes (i nv)
       (setf (aref res i) (+ (* a (aref va i))
                             (* b (aref vb i)))))
@@ -52,19 +53,20 @@
                           (values (simple-array double-float (*))
                                   (simple-array double-float (*))))
                 drotate))
-(defun drotate (va vb c s)
+(defun drotate-naive (va vb c s)
   (declare (type (simple-array double-float (*)) va vb)
            (type (double-float -1d0 1d0) c s))
   (let* ((nv (min (length va) (length vb)))
-         (vc (make-array (list nv) :element-type 'double-float))
-         (vd (make-array (list nv) :element-type 'double-float)))
+         (vc (make-array nv :element-type 'double-float))
+         (vd (make-array nv :element-type 'double-float)))
     (declare (type fixnum nv)
              (type (simple-array double-float (*)) vc vd))
     (dotimes (i nv)
-      (setf (aref vc i) (+ (* c (aref va i))
-                           (* s (aref vb i))))
-      (setf (aref vd i) (- (* c (aref vb i))
-                           (* s (aref va i)))))
+      (let ((vai (aref va i))
+            (vbi (aref vb i)))
+        (declare (type double-float vai vbi))
+        (setf (aref vc i) (+ (* c vai) (* s vbi)))
+        (setf (aref vd i) (- (* c vbi) (* s vai)))))
     (values vc vd)))
 
 
@@ -72,13 +74,16 @@
                            (simple-array double-float (*)))
                           (simple-array double-float (*)))
                 dm*v))
-(defun dm*v (ma vb)
+(defun dm*v-naive (ma vb)
   (declare (type (simple-array double-float (* *)) ma)
            (type (simple-array double-float (*)) vb))
   (let* ((nr (array-dimension ma 0))
-         (res (make-array (list nr) :element-type 'double-float)))
+         (nc (array-dimension ma 1))
+         (res (make-array nr :element-type 'double-float)))
     (dotimes (i nr)
-      (let ((va (slice ma i t)))
-        (declare (type (simple-array double-float (*)) va))
-        (setf (aref res i) (dv*v va vb))))
+      (let ((resi (aref res i)))
+        (declare (type double-float resi))
+        (dotimes (j nc)
+          (incf resi (* (aref ma i j) (aref vb j))))
+        (setf (aref res i) resi)))
     res))
