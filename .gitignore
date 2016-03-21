@@ -1,8 +1,7 @@
 *.FASL
 *.fasl
 *.lisp-temp
-benchmarks.numbers
+*.numbers
 bench/*/bench-cl3a
 bench/*/bench-blas
 bench/*/bench-eigen
-
