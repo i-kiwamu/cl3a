@@ -17,13 +17,15 @@ exec ros -Q -- $0 "$@"
   (let ((ma (make-array (list n n)
                         :element-type 'double-float))
         (mb (make-array (list n n)
+                        :element-type 'double-float))
+        (mc (make-array (list n n)
                         :element-type 'double-float)))
-    (declare (type (simple-array double-float (* *)) ma mb))
+    (declare (type (simple-array double-float (* *)) ma mb mc))
     (dotimes (i n)
       (dotimes (j n)
         (setf (aref ma i j) (random 1d0))
         (setf (aref mb i j) (random 1d0))))
-    (time (loop :repeat m :do (cl3a:dm*m ma mb)))))
+    (time (loop :repeat m :do (cl3a:dm*m ma mb mc)))))
 
 
 (defun main (n-str m-str &rest argv)

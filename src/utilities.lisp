@@ -6,17 +6,19 @@
                           :proper-list-p
                           :string-designator)
   (:export :+L1-size+
+           :+L2-size+
            :different-length-warn
            :ifloor
-           :ifloor-sqrt
            :min-factor
            :dotimes-unroll
+           :dotimes-interval
            :type-byte-length))
 (in-package :cl3a.utilities)
 
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defconstant +L1-size+ (the fixnum 32768))
+  (defconstant +L2-size+ (the fixnum 262144))
   (defconstant +unroll+ (the fixnum 5)))
 
 
@@ -36,20 +38,7 @@
          (m (mod x y))
          (x0 (- x m)))
     (declare (type integer y m x0))
-    (if (= m 0) (/ x y) (/ x0 y))))
-
-
-(declaim (ftype (function (integer integer &rest integer) integer)
-                ifloor-sqrt))
-(defun ifloor-sqrt (x y0 &rest ys)
-  "Take integer part of floor function"
-  (declare (type integer x y0)
-           (type (proper-list integer) ys))
-  (let* ((y (reduce #'* ys :initial-value y0))
-         (m (mod x y))
-         (x0 (- x m)))
-    (declare (type integer y m x0))
-    (if (= m 0) (isqrt (/ x y)) (isqrt (/ x0 y)))))
+    (/ x0 y)))
 
 
 (declaim (ftype (function (integer integer &rest integer) integer)
@@ -60,7 +49,7 @@
   (let* ((y (reduce #'* ys :initial-value y0))
          (m (mod x y)))
     (declare (type integer y m))
-    (if (= m 0) x (- x m))))
+    (- x m)))
 
 
 (defmacro dotimes-unroll ((i p n) &body body)
@@ -74,14 +63,28 @@
              (t (let ((,maxi
                        (do ((,i ,p (1+ ,i)))
                            ((>= ,i ,nu) ,i)
-                         ,@(loop :repeat +unroll+
+                         ,@(loop :repeat (1- +unroll+)
                               :append (append body `((incf ,i))))
-                         (decf ,i))))
+                         ,@body)))
                   (declare (type fixnum ,maxi))
                   (when (< ,maxi ,n)
                     (do ((,i ,maxi (1+ ,i)))
                         ((>= ,i ,n))
                       ,@body))))))))
+
+
+(defmacro dotimes-interval ((i m n) &body body)
+  (with-gensyms (n0)
+    `(let ((,n0 (min-factor ,n ,m)))
+       (declare (type fixnum ,n0))
+       (do ((,i 0 (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,n0))
+         ,@body)
+       (when (> (the fixnum ,n) ,n0)
+         (let ((,i ,n0)
+               (,m (- ,n ,n0)))
+           (declare (type fixnum ,i ,m))
+           ,@body)))))
 
 
 (declaim (ftype (function (symbol) fixnum) type-byte-length))

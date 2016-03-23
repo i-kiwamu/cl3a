@@ -14,17 +14,16 @@ exec ros -Q -- $0 "$@"
 
 (defun run-bench (n m)
   (declare (type fixnum n m))
-  (let ((ma (make-array (list n n)
-                        :element-type 'double-float))
-        (vb (make-array (list n)
-                        :element-type 'double-float)))
+  (let ((ma (make-array (list n n) :element-type 'double-float))
+        (vb (make-array n :element-type 'double-float))
+        (vc (make-array n :element-type 'double-float)))
     (declare (type (simple-array double-float (* *)) ma)
-             (type (simple-array double-float (*)) vb))
+             (type (simple-array double-float (*)) vb vc))
     (dotimes (i n)
       (dotimes (j n)
         (setf (aref ma i j) (random 1d0)))
       (setf (aref vb i) (random 1d0)))
-    (time (loop :repeat m :do (cl3a:dm*v ma vb)))))
+    (time (loop :repeat m :do (cl3a:dm*v ma vb vc)))))
 
 
 (defun main (n-str m-str &rest argv)

@@ -7,23 +7,24 @@
                           :string-designator)
   (:import-from :cl3a.utilities
                 :+L1-size+
+                :different-length-warn
                 :ifloor
                 :min-factor
                 :type-byte-length
                 :dotimes-unroll
-                :different-length-warn)
+                :dotimes-interval)
   (:export :dv+v :lv+v))
 (in-package :cl3a.add-vector)
 
 
-(defmacro v+v-ker (p n nvec va vb a b vc)
+(defmacro v+v-ker (s n nc va vb a b vc)
   "Add two vectors between a*va and b*vb"
   (with-gensyms (iend i)
-    `(let ((,iend (min ,nvec (the fixnum (+ ,p ,n)))))
+    `(let ((,iend (min ,nc (the fixnum (+ ,s ,n)))))
        (declare (type fixnum ,iend))
-       (dotimes-unroll (,i ,p ,iend)
-         (setf (aref ,vc ,i) (+ (* ,a (aref ,va ,i))
-                                (* ,b (aref ,vb ,i))))))))
+       (dotimes-unroll (,i ,s ,iend)
+         (incf (aref ,vc ,i)
+               (+ (* ,a (aref ,va ,i)) (* ,b (aref ,vb ,i))))))))
 
 
 (declaim (inline dv+v-ker)
@@ -33,13 +34,14 @@
                            double-float double-float
                            (simple-array double-float (*))))
                 dv+v-ker))
-(defun dv+v-ker (p n nvec va vb a b vc)
+(defun dv+v-ker (s n nc va vb a b vc)
   "Add two double-float vectors between a*va and b*vb"
   (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type fixnum p n nvec)
+           (type fixnum s n nc)
            (type double-float a b)
            (type (simple-array double-float (*)) va vb vc))
-  (v+v-ker p n nvec va vb a b vc))
+  (v+v-ker s n nc va vb a b vc))
+(declaim (notinline dv+v-ker))
 
 
 (declaim (inline lv+v-ker)
@@ -49,71 +51,55 @@
                            long-float long-float
                            (simple-array long-float (*))))
                 lv+v-ker))
-(defun lv+v-ker (p n nvec va vb a b vc)
+(defun lv+v-ker (s n nc va vb a b vc)
   "Add two long-float vectors between va and vb"
   (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type fixnum p n nvec)
+           (type fixnum s n nc)
            (type long-float a b)
            (type (simple-array long-float (*)) va vb vc))
-  (v+v-ker p n nvec va vb a b vc))
-
-
-;; (defmacro v+v (val-type fun a va b vb)
-;;   "Add two vectors within L1 cache-size"
-;;   (with-gensyms (na nb nvec tbl m k vc i nk)
-;;     `(let* ((,na (length ,va))
-;;             (,nb (length ,vb))
-;;             (,nvec (cond ((/= ,na ,nb) (different-length-warn ,na ,nb)
-;;                                        (min ,na ,nb))
-;;                          (t ,na)))
-;;             (,tbl (type-byte-length ',val-type))
-;;             (,m (ifloor +L1-size+ ,tbl))
-;;             (,k (min-factor ,nvec ,m))
-;;             (,vc (make-array ,nvec :element-type ',val-type)))
-;;        (declare (type fixnum ,na ,nb ,nvec ,tbl ,m ,k)
-;;                 (type (simple-array ,val-type (*)) ,vc))
-;;        (do ((,i 0 (the fixnum (+ ,i ,m))))
-;;            ((>= (the fixnum ,i) ,k))
-;;          (funcall ,fun ,i ,m ,nvec ,va ,vb ,a ,b ,vc))
-;;        (when (> ,nvec ,k)
-;;          (let ((,nk (- ,nvec ,k)))
-;;            (declare (type fixnum ,nk))
-;;            (funcall ,fun ,k ,nk ,nvec ,va ,vb ,a ,b ,vc)))
-;;        ,vc)))
-
-(defmacro v+v (val-type fun a va b vb)
-  (with-gensyms (na nb nvec vc)
-    `(let* ((,na (length ,va))
-            (,nb (length ,vb))
-            (,nvec (cond ((/= ,na ,nb) (different-length-warn ,na ,nb)
-                                       (min ,na ,nb))
-                         (t ,na)))
-            (,vc (make-array ,nvec :element-type ',val-type)))
-       (declare (type fixnum ,na ,nb ,nvec)
-                (type (simple-array ,val-type (*)) ,vc))
-       (funcall ,fun 0 ,nvec ,nvec ,va ,vb ,a ,b ,vc)
-       ,vc)))
+  (v+v-ker s n nc va vb a b vc))
+(declaim (notinline lv+v-ker))
 
 
 (declaim (ftype (function (double-float (simple-array double-float (*))
-                           double-float (simple-array double-float (*)))
-                          (simple-array double-float (*)))
+                           double-float (simple-array double-float (*))
+                           (simple-array double-float (*))))
                 dv+v))
-(defun dv+v (a va b vb)
+(defun dv+v (a va b vb vc)
   "Add two double-float vectors va and vb"
   (declare (optimize (speed 3))
+           (inline dv+v-ker)
            (type double-float a b)
-           (type (simple-array double-float (*)) va vb))
-  (v+v double-float #'dv+v-ker a va b vb))
+           (type (simple-array double-float (*)) va vb vc))
+  (let* ((na (length va))
+         (nb (length vb))
+         (nc (cond ((/= na nb) (different-length-warn na nb)
+                               (min na nb))
+                   (t na)))
+         (tbl (type-byte-length 'double-float))
+         (m (ifloor +L1-size+ tbl)))
+    (declare (type fixnum na nb nc tbl m))
+    (dotimes-interval (i m nc)
+      (dv+v-ker i m nc va vb a b vc))))
 
 
 (declaim (ftype (function (long-float (simple-array long-float (*))
-                           long-float (simple-array long-float (*)))
-                          (simple-array long-float (*)))
-                dv+v))
-(defun lv+v (a va b vb)
+                           long-float (simple-array long-float (*))
+                           (simple-array long-float (*))))
+                lv+v))
+(defun lv+v (a va b vb vc)
   "Add two long-float vectors va and vb"
   (declare (optimize (speed 3))
+           (inline lv+v-ker)
            (type long-float a b)
-           (type (simple-array long-float (*)) va vb))
-  (v+v long-float #'lv+v-ker a va b vb))
+           (type (simple-array long-float (*)) va vb vc))
+  (let* ((na (length va))
+         (nb (length vb))
+         (nc (cond ((/= na nb) (different-length-warn na nb)
+                               (min na nb))
+                   (t na)))
+         (tbl (type-byte-length 'long-float))
+         (m (ifloor +L1-size+ tbl)))
+    (declare (type fixnum na nb nc tbl m))
+    (dotimes-interval (i m nc)
+      (lv+v-ker i m nc va vb a b vc))))

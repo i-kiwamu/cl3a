@@ -1,6 +1,6 @@
 CLTARGET = bench-cl3a
 FTARGET = bench-blas
-# CPPTARGET = bench-eigen
+CPPTARGET = bench-eigen
 
 ROS = ros
 
@@ -35,4 +35,4 @@ $(CPPTARGET): $(CPPTARGET).cpp
 
 .PHONY: clean
 clean:
-	rm -f *.mod $(CLTARGET) $(FTARGET) # $(CPPTARGET)
+	rm -f *.mod $(CLTARGET) $(FTARGET) $(CPPTARGET)
