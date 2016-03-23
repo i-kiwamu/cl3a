@@ -1,7 +1,9 @@
 *.FASL
 *.fasl
 *.lisp-temp
-bench/dotprod/bench-cl3a
-bench/dotprod/bench-blas
-bench/dotprod/bench-eigen
-*.numbers
+*.fas
+*.lib
+bench/*/bench-cl3a
+bench/*/bench-blas
+bench/*/bench-eigen
+bench/bechmarks.numbers

@@ -5,7 +5,7 @@
 
 (defsystem cl3a-test
     :description "test for cl3a"
-    :depends-on (:cl3a :prove :cl-slice)
+    :depends-on (:cl3a :prove)
     :components ((:module "t"
                           :components
                           ((:test-file "cl3a-test"

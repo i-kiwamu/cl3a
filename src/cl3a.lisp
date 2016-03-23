@@ -11,9 +11,12 @@
                 :drotate :lrotate)
   (:import-from :cl3a.mvmult
                 :dm*v :lm*v)
+  (:import-from :cl3a.mmmult
+                :dm*m :lm*m)
   (:export :dv*v :lv*v
            :dnorm :lnorm
            :dv+v :lv+v
            :drotate :lrotate
-           :dm*v :lm*v))
+           :dm*v :lm*v
+           :dm*m :lm*m))
 (in-package :cl3a)
