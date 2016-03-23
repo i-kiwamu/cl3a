@@ -6,13 +6,12 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
-                :+L1-size+
                 :different-length-warn
-                :type-byte-length
                 :ifloor
                 :min-factor
                 :dotimes-unroll
-                :dotimes-interval)
+                :dotimes-interval
+                :block-size)
   (:export :dm*m :lm*m))
 (in-package :cl3a.mmmult)
 
@@ -87,10 +86,9 @@
                     (different-length-warn nca nrb)
                     (min nca nrb))
                    (t nca)))
-         (tbl (type-byte-length 'double-float))
          (nt (min nra ncb))
-         (m (ifloor +L1-size+ tbl nt nt)))
-    (declare (type fixnum nra nca nrb ncb nv tbl nt m))
+         (m (block-size nt 'double-float)))
+    (declare (type fixnum nra nca nrb ncb nv nt m))
     (if (= m 0)
         (dotimes (i nra)
           (dotimes (j ncb)
@@ -117,10 +115,9 @@
                     (different-length-warn nca nrb)
                     (min nca nrb))
                    (t nca)))
-         (tbl (type-byte-length 'long-float))
          (nt (min nra ncb))
-         (m (ifloor +L1-size+ tbl nt nt)))
-    (declare (type fixnum nra nca nrb ncb nv tbl nt m))
+         (m (block-size nt 'long-float)))
+    (declare (type fixnum nra nca nrb ncb nv nt m))
     (if (= m 0)
         (dotimes (i nra)
           (dotimes (j ncb)

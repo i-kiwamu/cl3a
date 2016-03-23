@@ -12,7 +12,8 @@
            :min-factor
            :dotimes-unroll
            :dotimes-interval
-           :type-byte-length))
+           :type-byte-length
+           :block-size))
 (in-package :cl3a.utilities)
 
 
@@ -94,3 +95,27 @@
     (single-float 4)
     (double-float 8)
     (long-float 16)))
+
+
+(declaim (ftype (function (integer symbol) integer) block-size))
+(defun block-size (n val-type)
+  "See Lam et al. 1991 The cache performance and optimizations of blocked algorithms"
+  (declare (type integer n))
+  (let* ((n-half (ifloor n 2))
+         (tbl (type-byte-length val-type))
+         (cache-size (ifloor +L1-size+ tbl)))
+    (declare (type integer n-half tbl cache-size))
+    (loop :while t
+       :with max-width :of-type integer = (min n cache-size)
+       :and addr :of-type integer = n-half
+       :and di :of-type integer = 0
+       :and dj :of-type integer = 1
+       :and di0 :of-type integer = 1
+       :do (progn
+             (incf addr cache-size)
+             (setf di (ifloor addr n))
+             (setf dj (abs (- (mod addr n) n-half)))
+             (setf di0 (min max-width dj)))
+       (when (>= di di0)
+         (return (min max-width di)))
+       :do (setf max-width di0))))
