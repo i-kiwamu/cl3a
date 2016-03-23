@@ -6,7 +6,7 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
-                :+L1-size+
+                :+L2-size+
                 :different-length-warn
                 :type-byte-length
                 :ifloor
@@ -123,8 +123,8 @@
                                 (min nca nb))
                    (t nca)))
          (tbl (type-byte-length 'double-float))
-         (mj (ifloor +L1-size+ tbl))
-         (mi (ifloor +L1-size+ tbl nj)))
+         (mj (ifloor +L2-size+ tbl))
+         (mi (ifloor +L2-size+ tbl nj)))
     (declare (type fixnum nra nca nb nj tbl mj mi))
     (cond ((= mj 0)
            (dotimes (i nra)
@@ -156,8 +156,8 @@
                                 (min nca nb))
                    (t nca)))
          (tbl (type-byte-length 'long-float))
-         (mj (ifloor +L1-size+ tbl))
-         (mi (ifloor +L1-size+ tbl nj)))
+         (mj (ifloor +L2-size+ tbl))
+         (mi (ifloor +L2-size+ tbl nj)))
     (declare (type fixnum nra nca nb nj tbl mj mi))
     (cond ((= mj 0)
            (dotimes (i nra)

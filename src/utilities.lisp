@@ -97,14 +97,13 @@
     (long-float 16)))
 
 
-(declaim (ftype (function (integer symbol) integer) block-size))
-(defun block-size (n val-type)
+(declaim (ftype (function (integer) integer) block-size))
+(defun block-size (n)
   "See Lam et al. 1991 The cache performance and optimizations of blocked algorithms"
   (declare (type integer n))
   (let* ((n-half (ifloor n 2))
-         (tbl (type-byte-length val-type))
-         (cache-size (ifloor +L1-size+ tbl)))
-    (declare (type integer n-half tbl cache-size))
+         (cache-size (ifloor +L2-size+ 4)))  ;; 1 word = 4 byte
+    (declare (type integer n-half cache-size))
     (loop :while t
        :with max-width :of-type integer = (min n cache-size)
        :and addr :of-type integer = n-half
