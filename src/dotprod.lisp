@@ -6,7 +6,7 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
-                :+L1-size+
+                :+L2-size+
                 :different-length-warn
                 :ifloor
                 :min-factor
@@ -18,7 +18,7 @@
 
 (defmacro v*v-ker (val-type s n nc va vb)
   "Dot production between vectors va and vb"
-  (with-gensyms (nv iend iend0 res i maxi)
+  (with-gensyms (nv iend iend0 res i maxi i1 i2 i3 i4)
     `(let* ((,nv (min ,nc ,n))
             (,iend (min ,nc (the fixnum (+ ,s ,n))))
             (,iend0 (min-factor ,iend 5))
@@ -29,13 +29,22 @@
        ;; Do NOT use dotimes-unroll macro for speed
        (when (>= ,nv 5)
          (setf ,maxi
-               (do ((,i ,s (1+ ,i)))
+               (do (;; (,i ,s (1+ ,i))
+                    (,i ,s (+ ,i 5))
+                    (,i1 (the fixnum (+ ,s 1)) (the fixnum (+ ,i1 5)))
+                    (,i2 (the fixnum (+ ,s 2)) (the fixnum (+ ,i2 5)))
+                    (,i3 (the fixnum (+ ,s 3)) (the fixnum (+ ,i3 5)))
+                    (,i4 (the fixnum (+ ,s 4)) (the fixnum (+ ,i4 5))))
                    ((>= ,i ,iend0) ,i)
                  (incf ,res
                        (+ (* (aref ,va ,i) (aref ,vb ,i))
-                          ,@(loop :repeat 4
-                               :append `((* (aref ,va (incf ,i))
-                                            (aref ,vb ,i)))))))))
+                          ;; ,@(loop :repeat 4
+                          ;;      :append `((* (aref ,va (incf ,i))
+                          ;;                   (aref ,vb ,i)))))))))
+                          (* (aref ,va ,i1) (aref ,vb ,i1))
+                          (* (aref ,va ,i2) (aref ,vb ,i2))
+                          (* (aref ,va ,i3) (aref ,vb ,i3))
+                          (* (aref ,va ,i4) (aref ,vb ,i4)))))))
        ;; if nv < 5 or maxi < iend, calculate the rest of elements
        (do ((,i ,maxi (1+ ,i)))
            ((>= ,i ,iend))

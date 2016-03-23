@@ -6,7 +6,7 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
-                :+L1-size+
+                :+L2-size+
                 :different-length-warn
                 :type-byte-length
                 :ifloor
@@ -89,10 +89,14 @@
                                (min na nb))
                    (t na)))
          (tbl (type-byte-length 'double-float))
-         (m (ifloor +L1-size+ tbl)))
+         (m (ifloor +L2-size+ tbl)))
     (declare (type fixnum na nb nc tbl m))
-    (dotimes-interval (i m nc)
-      (drotate-ker i m nc va vb c s vc vd))))
+    (cond ((= m 0)
+           (dotimes (i nc)
+             (drotate-ker i m nc va vb c s vc vd)))
+          (t
+           (dotimes-interval (i m nc)
+             (drotate-ker i m nc va vb c s vc vd))))))
 
 
 (declaim (ftype (function ((simple-array long-float (*))
@@ -115,7 +119,11 @@
                                (min na nb))
                    (t na)))
          (tbl (type-byte-length 'long-float))
-         (m (ifloor +L1-size+ tbl)))
+         (m (ifloor +L2-size+ tbl)))
     (declare (type fixnum na nb nc tbl m))
-    (dotimes-interval (i m nc)
-      (lrotate-ker i m nc va vb c s vc vd))))
+    (cond ((= m 0)
+           (dotimes (i nc)
+             (lrotate-ker i m nc va vb c s vc vd)))
+          (t
+           (dotimes-interval (i m nc)
+             (lrotate-ker i m nc va vb c s vc vd))))))

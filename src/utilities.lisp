@@ -101,8 +101,8 @@
 (defun block-size (n)
   "See Lam et al. 1991 The cache performance and optimizations of blocked algorithms"
   (declare (type integer n))
-  (let* ((n-half (ifloor n 2))
-         (cache-size (ifloor +L2-size+ 4)))  ;; 1 word = 4 byte
+  (let ((n-half (ifloor n 2))
+        (cache-size (ifloor +L2-size+ 4)))  ;; 1 word = 4 byte
     (declare (type integer n-half cache-size))
     (loop :while t
        :with max-width :of-type integer = (min n cache-size)

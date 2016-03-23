@@ -12,7 +12,8 @@
                 :ifloor
                 :min-factor
                 :dotimes-unroll
-                :dotimes-interval)
+                :dotimes-interval
+                :block-size)
   (:export :dm*v :lm*v))
 (in-package :cl3a.mvmult)
 
@@ -122,21 +123,15 @@
          (nj (cond ((/= nca nb) (different-length-warn nca nb)
                                 (min nca nb))
                    (t nca)))
-         (tbl (type-byte-length 'double-float))
-         (mj (ifloor +L2-size+ tbl))
-         (mi (ifloor +L2-size+ tbl nj)))
-    (declare (type fixnum nra nca nb nj tbl mj mi))
-    (cond ((= mj 0)
+         (m (block-size (min nra nj))))
+    (declare (type fixnum nra nca nb nj m))
+    (cond ((= m 0)
            (dotimes (i nra)
              (dotimes (j nj)
                (dm*v-ker i 1 j 1 nra nca ma vb vc))))
-          ((= mi 0)
-           (dotimes (i nra)
-             (dotimes-interval (j mj nj)
-               (dm*v-ker i 1 j mj nra nca ma vb vc))))
           (t
-           (dotimes-interval (i mi nra)
-             (dm*v-ker i mi 0 nj nra nca ma vb vc))))))
+           (dotimes-interval (i m nra)
+             (dm*v-ker i m 0 nj nra nca ma vb vc))))))
 
 
 (declaim (ftype (function ((simple-array long-float (* *))
@@ -155,18 +150,12 @@
          (nj (cond ((/= nca nb) (different-length-warn nca nb)
                                 (min nca nb))
                    (t nca)))
-         (tbl (type-byte-length 'long-float))
-         (mj (ifloor +L2-size+ tbl))
-         (mi (ifloor +L2-size+ tbl nj)))
-    (declare (type fixnum nra nca nb nj tbl mj mi))
-    (cond ((= mj 0)
+         (m (block-size (min nra nj))))
+    (declare (type fixnum nra nca nb nj m))
+    (cond ((= m 0)
            (dotimes (i nra)
              (dotimes (j nj)
                (lm*v-ker i 1 j 1 nra nca ma vb vc))))
-          ((= mi 0)
-           (dotimes (i nra)
-             (dotimes-interval (j mj nj)
-               (lm*v-ker i 1 j mj nra nca ma vb vc))))
           (t
-           (dotimes-interval (i mi nra)
-             (lm*v-ker i mi 0 nj nra nca ma vb vc))))))
+           (dotimes-interval (i m nra)
+             (lm*v-ker i m 0 nj nra nca ma vb vc))))))

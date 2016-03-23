@@ -6,14 +6,14 @@
                           :proper-list-p
                           :string-designator)
   (:import-from :cl3a.utilities
-                :+L1-size+
+                :+L2-size+
                 :different-length-warn
                 :ifloor
                 :min-factor
                 :type-byte-length
                 :dotimes-unroll
                 :dotimes-interval)
-  (:export :dv+v :lv+v))
+  (:export :dv+v :lv+v :dv+v-block))
 (in-package :cl3a.add-vector)
 
 
@@ -77,10 +77,39 @@
                                (min na nb))
                    (t na)))
          (tbl (type-byte-length 'double-float))
-         (m (ifloor +L1-size+ tbl)))
+         (m (ifloor +L2-size+ tbl)))
     (declare (type fixnum na nb nc tbl m))
-    (dotimes-interval (i m nc)
-      (dv+v-ker i m nc va vb a b vc))))
+    (cond ((= m 0)
+           (dotimes (i nc)
+             (dv+v-ker i 1 nc va vb a b vc)))
+          (t
+           (dotimes-interval (i m nc)
+             (dv+v-ker i m nc va vb a b vc))))))
+
+
+(declaim (ftype (function (double-float (simple-array double-float (*))
+                           double-float (simple-array double-float (*))
+                           (simple-array double-float (*)) fixnum))
+                dv+v-block))
+(defun dv+v-block (a va b vb vc m)
+  "Add two double-float vectors va and vb"
+  (declare (optimize (speed 3))
+           (inline dv+v-ker)
+           (type double-float a b)
+           (type (simple-array double-float (*)) va vb vc)
+           (type fixnum m))
+  (let* ((na (length va))
+         (nb (length vb))
+         (nc (cond ((/= na nb) (different-length-warn na nb)
+                               (min na nb))
+                   (t na))))
+    (declare (type fixnum na nb nc m))
+    (cond ((= m 0)
+           (dotimes (i nc)
+             (dv+v-ker i 1 nc va vb a b vc)))
+          (t
+           (dotimes-interval (i m nc)
+             (dv+v-ker i m nc va vb a b vc))))))
 
 
 (declaim (ftype (function (long-float (simple-array long-float (*))
@@ -99,7 +128,11 @@
                                (min na nb))
                    (t na)))
          (tbl (type-byte-length 'long-float))
-         (m (ifloor +L1-size+ tbl)))
+         (m (ifloor +L2-size+ tbl)))
     (declare (type fixnum na nb nc tbl m))
-    (dotimes-interval (i m nc)
-      (lv+v-ker i m nc va vb a b vc))))
+    (cond ((= m 0)
+           (dotimes (i nc)
+             (lv+v-ker i 1 nc va vb a b vc)))
+          (t
+           (dotimes-interval (i m nc)
+             (lv+v-ker i m nc va vb a b vc))))))
