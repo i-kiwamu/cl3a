@@ -1,6 +1,8 @@
 *.FASL
 *.fasl
 *.lisp-temp
+*.fas
+*.lib
 bench/*/bench-cl3a
 bench/*/bench-blas
 bench/*/bench-eigen
