@@ -3,6 +3,8 @@
   (:use :cl :alexandria)
   (:export :+L1-size+
            :+L2-size+
+           :+associativity+
+           :+unroll+
            :different-length-warn
            :ifloor
            :min-factor
@@ -16,6 +18,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defconstant +L1-size+ (the fixnum 32768))
   (defconstant +L2-size+ (the fixnum 262144))
+  (defconstant +associativity+ (the fixnum 8))
   (defconstant +unroll+ (the fixnum 5)))
 
 
@@ -51,25 +54,23 @@
     (- x m)))
 
 
-(defmacro dotimes-unroll ((i p n) &body body)
+(defmacro dotimes-unroll ((i p n &optional (unroll +unroll+)) &body body)
   "Loop for i from p to n with unrolling of +unroll+"
   (with-gensyms (nu maxi)
-    `(let ((,nu (min-factor ,n +unroll+)))
+    `(let ((,nu (min-factor (- ,n ,p) ,unroll)))
        (declare (type fixnum ,nu))
-       (cond ((< ,n +unroll+) (do ((,i ,p (the fixnum (1+ ,i))))
-                                  ((>= (the fixnum ,i) ,n))
-                                ,@body))
-             (t (let ((,maxi
-                       (do ((,i ,p (the fixnum (1+ ,i))))
-                           ((>= (the fixnum ,i) ,nu) ,i)
-                         ,@(loop :repeat (1- +unroll+)
-                              :append (append body `((incf ,i))))
-                         ,@body)))
-                  (declare (type fixnum ,maxi))
-                  (when (< ,maxi ,n)
-                    (do ((,i ,maxi (the fixnum (1+ ,i))))
-                        ((>= (the fixnum ,i) ,n))
-                      ,@body))))))))
+       (let ((,maxi
+              (do ((,i ,p (the fixnum (1+ ,i))))
+                  ((>= (the fixnum ,i) ,nu) ,i)
+                ,@(loop :repeat unroll
+                     :append (append body `((incf ,i))))
+                (decf ,i))))
+         (declare (type fixnum ,maxi))
+         ;; if n-p < 5 or n > n0
+         (when (< ,maxi ,n)
+           (do ((,i ,maxi (the fixnum (1+ ,i))))
+               ((>= (the fixnum ,i) ,n))
+             ,@body))))))
 
 
 (defmacro dotimes-interval ((i m n) &body body)
@@ -80,10 +81,11 @@
            ((>= (the fixnum ,i) ,n0))
          ,@body)
        (when (> (the fixnum ,n) ,n0)
-         (let ((,i ,n0)
-               (,m (- ,n ,n0)))
-           (declare (type fixnum ,i ,m))
-           ,@body)))))
+         ;; execution only once
+         (do ((,i ,n0 (the fixnum (1+ ,i))))
+             ((>= (the fixnum ,i) (1+ ,n0)))
+           ,@body))
+       nil)))
 
 
 (declaim (ftype (function (symbol) fixnum) type-byte-length))

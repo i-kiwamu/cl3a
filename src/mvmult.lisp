@@ -7,10 +7,12 @@
 
 (defmacro m*v-ker (val-type si ni sj nj nr nc ma vb vc)
   "Multiply matrix and vector"
-  (with-gensyms (iend jend i j ima ivb vci)
+  (with-gensyms (iend jend jend0 maxj i j ima ivb vci)
     `(let* ((,iend (min ,nr (the fixnum (+ ,si ,ni))))
-            (,jend (min ,nc (the fixnum (+ ,sj ,nj)))))
-       (declare (type fixnum ,iend ,jend))
+            (,jend (min ,nc (the fixnum (+ ,sj ,nj))))
+            (,jend0 (min-factor (- ,jend ,sj) +unroll+))
+            (,maxj 0))
+       (declare (type fixnum ,iend ,jend ,jend0))
        (do ((,i ,si (1+ ,i)))
            ((>= ,i ,iend))
          (let ((,ima (array-row-major-index ,ma ,i ,sj))
@@ -18,13 +20,24 @@
                (,vci (coerce 0.0 ',val-type)))
            (declare (type fixnum ,ima ,ivb)
                     (type ,val-type ,vci))
-           (do ((,j ,sj (1+ ,j)))
-               ((>= ,j ,jend))
-             (incf ,vci
-                   (* (row-major-aref ,ma ,ima)
-                      (row-major-aref ,vb ,ivb)))
-             (incf ,ima)
-             (incf ,ivb))
+           (setf ,maxj
+                 (do ((,j ,sj (+ ,j +unroll+)))
+                     ((>= ,j ,jend0) ,j)
+                   ,@(loop :repeat +unroll+
+                        :with form = `((incf ,vci
+                                             (* (row-major-aref ,ma ,ima)
+                                                (row-major-aref ,vb ,ivb)))
+                                       (incf ,ima)
+                                       (incf ,ivb))
+                        :append form)))
+           (when (> ,jend ,maxj)
+             (do ((,j ,maxj (1+ ,j)))
+                 ((>= ,j ,jend))
+               (incf ,vci
+                     (* (row-major-aref ,ma ,ima)
+                        (row-major-aref ,vb ,ivb)))
+               (incf ,ima)
+               (incf ,ivb)))
            (incf (aref ,vc ,i) ,vci))))))
 
 
@@ -43,9 +56,9 @@
               (,nj (cond ((/= ,nca ,nb) (different-length-warn ,nca ,nb)
                                         (min ,nca ,nb))
                          (t ,nca)))
-              (,m (block-size (min ,nra ,nj))))
+              (,m (block-size ,nra)))
          (declare (type fixnum ,nra ,nca ,nb ,nj ,m))
-         (if (= ,m 0)
+         (if (= ,m ,nra)
              (,calc 0 ,nra 0 ,nj ,nra ,nca ,ma ,vb ,vc)
              (dotimes-interval (,i ,m ,nra)
                (,calc ,i ,m 0 ,nj ,nra ,nca ,ma ,vb ,vc)))))))
