@@ -1,86 +1,54 @@
 (in-package :cl-user)
 (defpackage cl3a.dotprod
-  (:use :cl :alexandria :trivial-types)
-  (:shadowing-import-from :trivial-types
-                          :proper-list
-                          :proper-list-p
-                          :string-designator)
-  (:import-from :cl3a.utilities
-                :+L2-size+
-                :different-length-warn
-                :ifloor
-                :min-factor
-                :type-byte-length
-                :dotimes-interval)
+  (:use :cl :alexandria :cl3a.utilities)
   (:export :dv*v :lv*v))
 (in-package :cl3a.dotprod)
 
 
 (defmacro v*v-ker (val-type s n nc va vb)
   "Dot production between vectors va and vb"
-  (with-gensyms (nv iend iend0 res i maxi i1 i2 i3 i4)
-    `(let* ((,nv (min ,nc ,n))
-            (,iend (min ,nc (the fixnum (+ ,s ,n))))
-            (,iend0 (min-factor ,iend 5))
-            (,res (coerce 0.0 ',val-type))
-            (,maxi 0))
-       (declare (type fixnum ,nv ,iend0 ,maxi)
-                (type ,val-type ,res))
-       ;; Do NOT use dotimes-unroll macro for speed
-       (when (>= ,nv 5)
-         (setf ,maxi
-               (do (;; (,i ,s (1+ ,i))
-                    (,i ,s (+ ,i 5))
-                    (,i1 (the fixnum (+ ,s 1)) (the fixnum (+ ,i1 5)))
-                    (,i2 (the fixnum (+ ,s 2)) (the fixnum (+ ,i2 5)))
-                    (,i3 (the fixnum (+ ,s 3)) (the fixnum (+ ,i3 5)))
-                    (,i4 (the fixnum (+ ,s 4)) (the fixnum (+ ,i4 5))))
-                   ((>= ,i ,iend0) ,i)
+  (let ((i-list (make-gensym-list +unroll+ "i")))
+    (with-gensyms (nv iend iend0 res maxi i)
+      `(let* ((,nv (min ,nc ,n))
+              (,iend (min ,nc (the fixnum (+ ,s ,n))))
+              (,iend0 (min-factor ,iend +unroll+))
+              (,res (coerce 0.0 ',val-type))
+              (,maxi 0))
+         (declare (type fixnum ,nv ,iend0 ,maxi)
+                  (type ,val-type ,res))
+         ;; Do NOT use dotimes-unroll macro for speed
+         (when (>= ,nv +unroll+)
+           (setf ,maxi
+                 (do (,@(loop :for ui :below +unroll+
+                           :for ii :in i-list
+                           :append `((,ii (the fixnum (+ ,s ,ui))
+                                          (the fixnum (+ ,ii +unroll+))))))
+                   ((>= ,(nth 0 i-list) ,iend0) ,(nth 0 i-list))
                  (incf ,res
-                       (+ (* (aref ,va ,i) (aref ,vb ,i))
-                          ;; ,@(loop :repeat 4
-                          ;;      :append `((* (aref ,va (incf ,i))
-                          ;;                   (aref ,vb ,i)))))))))
-                          (* (aref ,va ,i1) (aref ,vb ,i1))
-                          (* (aref ,va ,i2) (aref ,vb ,i2))
-                          (* (aref ,va ,i3) (aref ,vb ,i3))
-                          (* (aref ,va ,i4) (aref ,vb ,i4)))))))
-       ;; if nv < 5 or maxi < iend, calculate the rest of elements
-       (do ((,i ,maxi (1+ ,i)))
-           ((>= ,i ,iend))
-         (incf ,res (* (aref ,va ,i) (aref ,vb ,i))))
-       ,res)))
+                       (+ ,@(loop :for ii :in i-list
+                               :append `((* (aref ,va ,ii) (aref ,vb ,ii)))))))))
+         ;; if nv < unroll or maxi < iend, calculate the rest of elements
+         (do ((,i ,maxi (1+ ,i)))
+             ((>= ,i ,iend))
+           (incf ,res (* (aref ,va ,i) (aref ,vb ,i))))
+         ,res))))
 
 
-(declaim (inline dv*v-ker)
-         (ftype (function (fixnum fixnum fixnum
-                           (simple-array double-float (*))
-                           (simple-array double-float (*)))
-                          double-float)
-                dv*v-ker))
-(defun dv*v-ker (s n nc va vb)
-  "Dot product with two double-float vectors va and vb"
-  (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type fixnum s n nc)
-           (type (simple-array double-float (*)) va vb))
-  (v*v-ker double-float s n nc va vb))
-(declaim (notinline dv*v-ker))
-
-
-(declaim (inline lv*v-ker)
-         (ftype (function (fixnum fixnum fixnum
-                           (simple-array long-float (*))
-                           (simple-array long-float (*)))
-                          long-float)
-                lv*v-ker))
-(defun lv*v-ker (s n nc va vb)
-  "Dot product with two long-float vectors va and vb"
-  (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type fixnum s n nc)
-           (type (simple-array long-float (*)) va vb))
-  (v*v-ker long-float s n nc va vb))
-(declaim (notinline lv*v-ker))
-
+(defmacro v*v (val-type va vb)
+  (with-gensyms (calc na nb nc)
+    `(flet ((,calc (s n nc va vb)
+              (declare (optimize (speed 3) (debug 0) (safety 0))
+                       (type fixnum s n nc)
+                       (type (simple-array ,val-type (*)) va vb))
+              (v*v-ker ,val-type s n nc va vb)))
+       (declare (inline ,calc))
+       (let* ((,na (length ,va))
+              (,nb (length ,vb))
+              (,nc (cond ((/= ,na ,nb) (different-length-warn ,na ,nb)
+                                       (min ,na ,nb))
+                         (t ,na))))
+         (declare (type fixnum ,na ,nb ,nc))
+         (,calc 0 ,nc ,nc ,va ,vb)))))
 
 (declaim (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
@@ -88,16 +56,8 @@
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two double-float vectors va and vb"
-  (declare (optimize (speed 3))
-           (inline dv*v-ker)
-           (type (simple-array double-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nc (cond ((/= na nb) (different-length-warn na nb)
-                               (min na nb))
-                   (t na))))
-    (declare (type fixnum na nb nc))
-    (dv*v-ker 0 nc nc va vb)))
+  (declare (type (simple-array double-float (*)) va vb))
+  (v*v double-float va vb))
 
 
 (declaim (ftype (function ((simple-array long-float (*))
@@ -106,13 +66,5 @@
                 lv*v))
 (defun lv*v (va vb)
   "Dot product with two double-float vectors va and vb"
-  (declare (optimize (speed 3))
-           (inline lv*v-ker)
-           (type (simple-array long-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nc (cond ((/= na nb) (different-length-warn na nb)
-                               (min na nb))
-                   (t na))))
-    (declare (type fixnum na nb nc))
-    (lv*v-ker 0 nc nc va vb)))
+  (declare (type (simple-array long-float (*)) va vb))
+  (v*v long-float va vb))

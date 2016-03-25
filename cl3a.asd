@@ -8,12 +8,12 @@
     :version "0.1"
     :author "Kiwamu Ishikura"
     :license "GPL"
-    :depends-on (:trivial-types :alexandria)
+    :depends-on (:alexandria)
     :components ((:module "src"
                   :components
                   ((:file "cl3a"
                     :depends-on ("dotprod" "norm" "add_vector" "rotate"
-                                 "mvmult" "mmmult"))
+                                 "mvmult" "mmmult" "transpose"))
                    (:file "utilities")
                    (:file "dotprod"
                           :depends-on ("utilities"))
@@ -26,5 +26,7 @@
                    (:file "mvmult"
                           :depends-on ("utilities"))
                    (:file "mmmult"
+                          :depends-on ("utilities"))
+                   (:file "transpose"
                           :depends-on ("utilities")))))
     :in-order-to ((test-op (load-op cl3a-test))))

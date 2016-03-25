@@ -4,6 +4,46 @@
 (in-package #:cl3a-test)
 
 
+(defun equal-vector (va vb)
+  (let* ((na (length va))
+         (nb (length vb))
+         (n (min na nb))
+         (test (= na nb)))
+    (declare (type integer na nb n)
+             (type boolean test))
+    (when test
+      (block check
+        (dotimes (i n)
+          (let ((a (coerce (aref va i) 'single-float))
+                (b (coerce (aref vb i) 'single-float)))
+            (when (/= a b)
+              (setf test nil)
+              (return-from check))))))
+    test))
+
+
+(defun equal-matrix (ma mb)
+  (let* ((nra (array-dimension ma 0))
+         (nrb (array-dimension mb 0))
+         (nca (array-dimension ma 1))
+         (ncb (array-dimension mb 1))
+         (nr (min nra nrb))
+         (nc (min nca ncb))
+         (test (and (= nra nrb) (= nca ncb))))
+    (declare (type integer nra nrb nca ncb nr nc)
+             (type boolean test))
+    (when test
+      (block check
+        (dotimes (i nr)
+          (dotimes (j nc)
+            (let ((a (coerce (aref ma i j) 'single-float))
+                  (b (coerce (aref mb i j) 'single-float)))
+            (when (/= a b)
+              (setf test nil)
+              (return-from check)))))))
+    test))
+
+
 (defun ddotprod-test (n)
   (declare (type integer n))
   (let ((va (make-array n :element-type 'double-float
@@ -53,7 +93,7 @@
     (dv+v a va b vb res1)
     (dv+v-naive a va b vb res2)
     (diag "Test for dv+v")
-    (is res1 res2 :test #'equalp)))
+    (is res1 res2 :test #'equal-vector)))
 
 
 (defun drotate-test (n)
@@ -82,8 +122,8 @@
     (drotate va vb c s res1c res1d)
     (drotate-naive va vb c s res2c res2d)
     (subtest "Test for drotate"
-      (is res1c res2c :test #'equalp)
-      (is res1d res2d :test #'equalp))))
+      (is res1c res2c :test #'equal-vector)
+      (is res1d res2d :test #'equal-vector))))
 
 
 (defun dm*v-test (n)
@@ -105,7 +145,7 @@
     (dm*v ma vb res1)
     (dm*v-naive ma vb res2)
     (diag "Test for dm*v")
-    (is res1 res2 :test #'equalp)))
+    (is res1 res2 :test #'equal-vector)))
 
 
 (defun dm*m-test (n)
@@ -126,14 +166,14 @@
     (dm*m ma mb res1)
     (dm*m-naive ma mb res2)
     (diag "Test for dm*m")
-    (is res1 res2 :test #'equalp)))
+    (is res1 res2 :test #'equal-matrix)))
 
 
-(plan 6)
-(ddotprod-test 5000)
-(dnorm-test 5000)
-(dadd-test 5000)
-(drotate-test 5000)
-(dm*v-test 500)
-(dm*m-test 50)
+(plan 6)  ;; use prime number
+(ddotprod-test 4999)
+(dnorm-test 4999)
+(dadd-test 4999)
+(drotate-test 4999)
+(dm*v-test 499)
+(dm*m-test 53)
 (finalize)
