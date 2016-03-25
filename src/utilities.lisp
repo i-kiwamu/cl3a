@@ -19,7 +19,7 @@
   (defconstant +L1-size+ (the fixnum 32768))
   (defconstant +L2-size+ (the fixnum 262144))
   (defconstant +associativity+ (the fixnum 8))
-  (defconstant +unroll+ (the fixnum 5)))
+  (defconstant +unroll+ (the fixnum 6)))
 
 
 (defun different-length-warn (na nb)
@@ -57,7 +57,7 @@
 (defmacro dotimes-unroll ((i p n &optional (unroll +unroll+)) &body body)
   "Loop for i from p to n with unrolling of +unroll+"
   (with-gensyms (nu maxi)
-    `(let ((,nu (min-factor (- ,n ,p) ,unroll)))
+    `(let ((,nu (min-factor (the fixnum (- ,n ,p)) ,unroll)))
        (declare (type fixnum ,nu))
        (let ((,maxi
               (do ((,i ,p (the fixnum (1+ ,i))))
@@ -66,7 +66,7 @@
                      :append (append body `((incf ,i))))
                 (decf ,i))))
          (declare (type fixnum ,maxi))
-         ;; if n-p < 5 or n > n0
+         ;; if n-p < unroll or n > n0
          (when (< ,maxi ,n)
            (do ((,i ,maxi (the fixnum (1+ ,i))))
                ((>= (the fixnum ,i) ,n))

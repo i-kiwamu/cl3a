@@ -35,11 +35,8 @@
               (,tbl (type-byte-length ',val-type))
               (,m (ifloor +L2-size+ ,tbl)))
          (declare (type fixnum ,na ,nb ,nv ,tbl ,m))
-         (cond ((= ,m 0)
-                (,calc 0 ,nv ,nv ,va ,vb ,c ,s ,vc ,vd))
-               (t
-                (dotimes-interval (,i ,m ,nv)
-                  (,calc ,i ,m ,nv ,va ,vb ,c ,s ,vc ,vd))))))))
+         (dotimes-interval (,i ,m ,nv)
+           (,calc ,i ,m ,nv ,va ,vb ,c ,s ,vc ,vd))))))
 
 
 (declaim (ftype (function ((simple-array double-float (*))

@@ -7,40 +7,49 @@
 
 (defmacro m*v-ker (val-type si ni nr nc ma vb vc)
   "Multiply matrix and vector"
-  (with-gensyms (iend jend0 i j ima ima1 ivb ivb1 vci)
-    `(let* ((,iend (min ,nr (the fixnum (+ ,si ,ni))))
-            (,jend0 (min-factor ,nc 2)))  ;; unrolling = 2
-       (declare (type fixnum ,iend ,jend0))
-       (do ((,i ,si (1+ ,i)))
-           ((>= ,i ,iend))
-         (let ((,ima (array-row-major-index ,ma ,i 0))
-               (,ima1 (array-row-major-index ,ma ,i 1))
-               (,ivb (array-row-major-index ,vb 0))
-               (,ivb1 (array-row-major-index ,vb 1))
-               (,vci (coerce 0.0 ',val-type)))
-           (declare (type fixnum ,ima ,ima1 ,ivb ,ivb1)
-                    (type ,val-type ,vci))
-           (do ((,j 0 (the fixnum (+ ,j 2))))
-               ((>= (the fixnum ,j) ,jend0))
-             (incf ,vci
-                   (+ (* (row-major-aref ,ma ,ima)
-                         (row-major-aref ,vb ,ivb))
-                      (* (row-major-aref ,ma ,ima1)
-                         (row-major-aref ,vb ,ivb1))))
-             (incf ,ima 2)
-             (incf ,ima1 2)
-             (incf ,ivb 2)
-             (incf ,ivb1 2))
-           ;; if nc < 2 or nc is odd number
-           (when (> ,nc ,jend0)
-             (incf ,vci
-                   (* (row-major-aref ,ma ,ima)
-                      (row-major-aref ,vb ,ivb))))
-           (incf (aref ,vc ,i) ,vci))))))
+  (let* (;; (unroll +unroll+)  ;; slow
+         (unroll 3)
+         (ima-list (make-gensym-list unroll "ima"))
+         (ivb-list (make-gensym-list unroll "ivb")))
+    (declare (type fixnum unroll))
+    (with-gensyms (iend jend0 i j vci)
+      `(let ((,iend (min ,nr (the fixnum (+ ,si ,ni))))
+             (,jend0 (min-factor ,nc ,unroll)))
+         (declare (type fixnum ,iend ,jend0))
+         (do ((,i ,si (1+ ,i)))
+             ((>= ,i ,iend))
+           (let (,@(loop :for ui :below unroll
+                      :for imai :in ima-list
+                      :for ivbi :in ivb-list
+                      :append `((,imai (array-row-major-index ,ma ,i ,ui))
+                                (,ivbi (array-row-major-index ,vb ,ui))))
+                 (,vci (coerce 0.0 ',val-type)))
+             (declare (type ,val-type ,vci))
+             (do ((,j 0 (the fixnum (+ ,j ,unroll))))
+                 ((>= (the fixnum ,j) ,jend0))
+               (incf ,vci
+                     (+ ,@(loop :for imai :in ima-list
+                             :for ivbi :in ivb-list
+                             :append `((* (row-major-aref ,ma ,imai)
+                                          (row-major-aref ,vb ,ivbi))))))
+               ,@(loop :for imai :in ima-list
+                    :for ivbi :in ivb-list
+                    :append `((incf (the fixnum ,imai) ,unroll)
+                              (incf (the fixnum ,ivbi) ,unroll))))
+             ;; if nc < unroll or nc is odd number
+             (when (> ,nc ,jend0)
+               (do ((,j ,jend0 (1+ ,j)))
+                   ((>= ,j ,nc))
+                 (incf ,vci
+                       (* (row-major-aref ,ma ,(nth 0 ima-list))
+                          (row-major-aref ,vb ,(nth 0 ivb-list))))
+                 (incf ,(nth 0 ima-list))
+                 (incf ,(nth 0 ivb-list))))
+             (incf (aref ,vc ,i) ,vci)))))))
 
 
 (defmacro m*v (val-type ma vb vc)
-  (with-gensyms (calc nra nca nb nj m0 m i)
+  (with-gensyms (calc nra nca nb nj tbl m i)
     `(flet ((,calc (si ni nr nc ma vb vc)
               (declare (optimize (speed 3) (debug 0) (safety 0))
                        (type fixnum si ni nr nc)
@@ -54,15 +63,11 @@
               (,nj (cond ((/= ,nca ,nb) (different-length-warn ,nca ,nb)
                                         (min ,nca ,nb))
                          (t ,nca)))
-              (,m0 (block-size (isqrt ,nra)))
-              (,m (* ,m0 ,m0)))
-         (declare (type fixnum ,nra ,nca ,nb ,nj ,m0 ,m))
-         (cond
-           ((= ,m ,nra)
-            (,calc 0 ,nra ,nra ,nj ,ma ,vb ,vc))
-           (t
-            (dotimes-interval (,i ,m ,nra)
-              (,calc ,i ,m ,nra ,nj ,ma ,vb ,vc))))))))
+              (,tbl (type-byte-length ',val-type))
+              (,m (isqrt (ifloor +L2-size+ ,tbl))))
+         (declare (type fixnum ,nra ,nca ,nb ,nj ,tbl ,m))
+         (dotimes-interval (,i ,m ,nra)
+           (,calc ,i ,m ,nra ,nj ,ma ,vb ,vc))))))
 
 
 (declaim (ftype (function ((simple-array double-float (* *))

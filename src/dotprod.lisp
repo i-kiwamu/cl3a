@@ -27,7 +27,7 @@
                  (incf ,res
                        (+ ,@(loop :for ii :in i-list
                                :append `((* (aref ,va ,ii) (aref ,vb ,ii)))))))))
-         ;; if nv < 5 or maxi < iend, calculate the rest of elements
+         ;; if nv < unroll or maxi < iend, calculate the rest of elements
          (do ((,i ,maxi (1+ ,i)))
              ((>= ,i ,iend))
            (incf ,res (* (aref ,va ,i) (aref ,vb ,i))))
