@@ -1,10 +1,6 @@
 (in-package :cl-user)
 (defpackage cl3a.utilities
-  (:use :cl :alexandria :trivial-types)
-  (:shadowing-import-from :trivial-types
-                          :proper-list
-                          :proper-list-p
-                          :string-designator)
+  (:use :cl :alexandria)
   (:export :+L1-size+
            :+L2-size+
            :different-length-warn
@@ -34,7 +30,8 @@
 (defun ifloor (x y0 &rest ys)
   "Take integer part of floor function"
   (declare (type integer x y0)
-           (type (proper-list integer) ys))
+           (type list ys)
+           (dynamic-extent ys))
   (let* ((y (reduce #'* ys :initial-value y0))
          (m (mod x y))
          (x0 (- x m)))
@@ -46,7 +43,8 @@
                 min-factor))
 (defun min-factor (x y0 &rest ys)
   (declare (type integer x y0)
-           (type (proper-list integer) ys))
+           (type list ys)
+           (dynamic-extent ys))
   (let* ((y (reduce #'* ys :initial-value y0))
          (m (mod x y)))
     (declare (type integer y m))
@@ -58,19 +56,19 @@
   (with-gensyms (nu maxi)
     `(let ((,nu (min-factor ,n +unroll+)))
        (declare (type fixnum ,nu))
-       (cond ((< ,n +unroll+) (do ((,i ,p (1+ ,i)))
-                                  ((>= ,i ,n))
+       (cond ((< ,n +unroll+) (do ((,i ,p (the fixnum (1+ ,i))))
+                                  ((>= (the fixnum ,i) ,n))
                                 ,@body))
              (t (let ((,maxi
-                       (do ((,i ,p (1+ ,i)))
-                           ((>= ,i ,nu) ,i)
+                       (do ((,i ,p (the fixnum (1+ ,i))))
+                           ((>= (the fixnum ,i) ,nu) ,i)
                          ,@(loop :repeat (1- +unroll+)
                               :append (append body `((incf ,i))))
                          ,@body)))
                   (declare (type fixnum ,maxi))
                   (when (< ,maxi ,n)
-                    (do ((,i ,maxi (1+ ,i)))
-                        ((>= ,i ,n))
+                    (do ((,i ,maxi (the fixnum (1+ ,i))))
+                        ((>= (the fixnum ,i) ,n))
                       ,@body))))))))
 
 

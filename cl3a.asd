@@ -8,7 +8,7 @@
     :version "0.1"
     :author "Kiwamu Ishikura"
     :license "GPL"
-    :depends-on (:trivial-types :alexandria)
+    :depends-on (:alexandria)
     :components ((:module "src"
                   :components
                   ((:file "cl3a"

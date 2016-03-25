@@ -1,0 +1,34 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+
+
+#+sbcl (sb-posix:chdir "../../")
+#+ccl (ccl:cwd "../")
+(ql:quickload "cl3a" :silent t)
+#+sbcl (sb-posix:chdir "./bench/mvmult")
+#+ccl (ccl:cwd "./bench/mvmult")
+
+
+(defun run-bench ()
+  (let ((ma (make-array (list 512 512) :element-type 'double-float))
+        (vb (make-array 512 :element-type 'double-float))
+        (vc (make-array 512 :element-type 'double-float)))
+    (declare (type (simple-array double-float (512 512)) ma)
+             (type (simple-array double-float (512)) vb vc))
+    (dotimes (i 512)
+      (dotimes (j 512)
+        (setf (aref ma i j) (random 1d0)))
+      (setf (aref vb i) (random 1d0)))
+    (time (loop :repeat 1000 :do (cl3a:dm*v ma vb vc)))))
+
+
+(defun main (&rest argv)
+  (declare (ignorable argv))
+    ;#+sbcl (sb-profile:profile "CL3A" "CL3A.UTILITIES" "CL3A.MVMULT")
+    (run-bench 512 1000)
+    ;#+sbcl (sb-profile:report)
+    ;#+sbcl (sb-profile:unprofile)
+    ))

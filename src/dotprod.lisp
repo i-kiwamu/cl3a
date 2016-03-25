@@ -1,17 +1,6 @@
 (in-package :cl-user)
 (defpackage cl3a.dotprod
-  (:use :cl :alexandria :trivial-types)
-  (:shadowing-import-from :trivial-types
-                          :proper-list
-                          :proper-list-p
-                          :string-designator)
-  (:import-from :cl3a.utilities
-                :+L2-size+
-                :different-length-warn
-                :ifloor
-                :min-factor
-                :type-byte-length
-                :dotimes-interval)
+  (:use :cl :alexandria :cl3a.utilities)
   (:export :dv*v :lv*v))
 (in-package :cl3a.dotprod)
 
@@ -38,9 +27,6 @@
                    ((>= ,i ,iend0) ,i)
                  (incf ,res
                        (+ (* (aref ,va ,i) (aref ,vb ,i))
-                          ;; ,@(loop :repeat 4
-                          ;;      :append `((* (aref ,va (incf ,i))
-                          ;;                   (aref ,vb ,i)))))))))
                           (* (aref ,va ,i1) (aref ,vb ,i1))
                           (* (aref ,va ,i2) (aref ,vb ,i2))
                           (* (aref ,va ,i3) (aref ,vb ,i3))
@@ -52,35 +38,21 @@
        ,res)))
 
 
-(declaim (inline dv*v-ker)
-         (ftype (function (fixnum fixnum fixnum
-                           (simple-array double-float (*))
-                           (simple-array double-float (*)))
-                          double-float)
-                dv*v-ker))
-(defun dv*v-ker (s n nc va vb)
-  "Dot product with two double-float vectors va and vb"
-  (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type fixnum s n nc)
-           (type (simple-array double-float (*)) va vb))
-  (v*v-ker double-float s n nc va vb))
-(declaim (notinline dv*v-ker))
-
-
-(declaim (inline lv*v-ker)
-         (ftype (function (fixnum fixnum fixnum
-                           (simple-array long-float (*))
-                           (simple-array long-float (*)))
-                          long-float)
-                lv*v-ker))
-(defun lv*v-ker (s n nc va vb)
-  "Dot product with two long-float vectors va and vb"
-  (declare (optimize (speed 3) (debug 0) (safety 0))
-           (type fixnum s n nc)
-           (type (simple-array long-float (*)) va vb))
-  (v*v-ker long-float s n nc va vb))
-(declaim (notinline lv*v-ker))
-
+(defmacro v*v (val-type va vb)
+  (with-gensyms (calc na nb nc)
+    `(flet ((,calc (s n nc va vb)
+              (declare (optimize (speed 3) (debug 0) (safety 0))
+                       (type fixnum s n nc)
+                       (type (simple-array ,val-type (*)) va vb))
+              (v*v-ker ,val-type s n nc va vb)))
+       (declare (inline ,calc))
+       (let* ((,na (length ,va))
+              (,nb (length ,vb))
+              (,nc (cond ((/= ,na ,nb) (different-length-warn ,na ,nb)
+                                       (min ,na ,nb))
+                         (t ,na))))
+         (declare (type fixnum ,na ,nb ,nc))
+         (,calc 0 ,nc ,nc ,va ,vb)))))
 
 (declaim (ftype (function ((simple-array double-float (*))
                            (simple-array double-float (*)))
@@ -88,16 +60,8 @@
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two double-float vectors va and vb"
-  (declare (optimize (speed 3))
-           (inline dv*v-ker)
-           (type (simple-array double-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nc (cond ((/= na nb) (different-length-warn na nb)
-                               (min na nb))
-                   (t na))))
-    (declare (type fixnum na nb nc))
-    (dv*v-ker 0 nc nc va vb)))
+  (declare (type (simple-array double-float (*)) va vb))
+  (v*v double-float va vb))
 
 
 (declaim (ftype (function ((simple-array long-float (*))
@@ -106,13 +70,5 @@
                 lv*v))
 (defun lv*v (va vb)
   "Dot product with two double-float vectors va and vb"
-  (declare (optimize (speed 3))
-           (inline lv*v-ker)
-           (type (simple-array long-float (*)) va vb))
-  (let* ((na (length va))
-         (nb (length vb))
-         (nc (cond ((/= na nb) (different-length-warn na nb)
-                               (min na nb))
-                   (t na))))
-    (declare (type fixnum na nb nc))
-    (lv*v-ker 0 nc nc va vb)))
+  (declare (type (simple-array long-float (*)) va vb))
+  (v*v long-float va vb))
