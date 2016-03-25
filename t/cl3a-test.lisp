@@ -129,11 +129,11 @@
     (is res1 res2 :test #'equalp)))
 
 
-(plan 6)
-(ddotprod-test 5000)
-(dnorm-test 5000)
-(dadd-test 5000)
-(drotate-test 5000)
-(dm*v-test 500)
-(dm*m-test 50)
+(plan 6)  ;; use prime number
+(ddotprod-test 4999)
+(dnorm-test 4999)
+(dadd-test 4999)
+(drotate-test 4999)
+(dm*v-test 499)
+(dm*m-test 53)
 (finalize)
