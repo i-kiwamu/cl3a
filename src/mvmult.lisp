@@ -6,21 +6,21 @@
 
 
 (defmacro m*v-ker (val-type si ni nr nc ma vb vc)
-  "Multiply matrix and vector (unroll version)"
+  "Multiply matrix and vector"
   (with-gensyms (iend jend0 i j ima ima1 ivb ivb1 vci)
     `(let* ((,iend (min ,nr (the fixnum (+ ,si ,ni))))
-            (,jend0 (min-factor ,nc 2)))
+            (,jend0 (min-factor ,nc 2)))  ;; unrolling = 2
        (declare (type fixnum ,iend ,jend0))
        (do ((,i ,si (1+ ,i)))
            ((>= ,i ,iend))
          (let ((,ima (array-row-major-index ,ma ,i 0))
+               (,ima1 (array-row-major-index ,ma ,i 1))
                (,ivb (array-row-major-index ,vb 0))
+               (,ivb1 (array-row-major-index ,vb 1))
                (,vci (coerce 0.0 ',val-type)))
-           (declare (type fixnum ,ima ,ivb)
+           (declare (type fixnum ,ima ,ima1 ,ivb ,ivb1)
                     (type ,val-type ,vci))
-           (do ((,j 0 (the fixnum (+ ,j 2)))
-                (,ima1 (the fixnum (1+ ,ima)) (the fixnum (+ ,ima1 2)))
-                (,ivb1 (the fixnum (1+ ,ivb)) (the fixnum (+ ,ivb1 2))))
+           (do ((,j 0 (the fixnum (+ ,j 2))))
                ((>= (the fixnum ,j) ,jend0))
              (incf ,vci
                    (+ (* (row-major-aref ,ma ,ima)
@@ -28,15 +28,14 @@
                       (* (row-major-aref ,ma ,ima1)
                          (row-major-aref ,vb ,ivb1))))
              (incf ,ima 2)
-             (incf ,ivb 2))
+             (incf ,ima1 2)
+             (incf ,ivb 2)
+             (incf ,ivb1 2))
+           ;; if nc < 2 or nc is odd number
            (when (> ,nc ,jend0)
-             (do ((,j ,jend0 (1+ ,j)))
-                 ((>= ,j ,nc))
-               (incf ,vci
-                     (* (row-major-aref ,ma ,ima)
-                        (row-major-aref ,vb ,ivb)))
-               (incf ,ima)
-               (incf ,ivb)))
+             (incf ,vci
+                   (* (row-major-aref ,ma ,ima)
+                      (row-major-aref ,vb ,ivb))))
            (incf (aref ,vc ,i) ,vci))))))
 
 
