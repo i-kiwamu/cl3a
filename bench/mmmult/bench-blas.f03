@@ -3,6 +3,7 @@ program main
   integer :: n, m
   character(len=20) :: argv
 
+  call openblas_set_num_threads(1)
   call get_command_argument(1, argv)
   read (argv, *) n
   call get_command_argument(2, argv)

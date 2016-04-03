@@ -8,25 +8,23 @@
 (defmacro v*v-ker (val-type s n nc va vb)
   "Dot production between vectors va and vb"
   (let ((i-list (make-gensym-list +unroll+ "i")))
-    (with-gensyms (nv iend iend0 res maxi i)
-      `(let* ((,nv (min ,nc ,n))
-              (,iend (min ,nc (the fixnum (+ ,s ,n))))
+    (with-gensyms (iend iend0 res maxi i)
+      `(let* ((,iend (min ,nc (the fixnum (+ ,s ,n))))
               (,iend0 (min-factor ,iend +unroll+))
               (,res (coerce 0.0 ',val-type))
               (,maxi 0))
-         (declare (type fixnum ,nv ,iend0 ,maxi)
+         (declare (type fixnum ,iend0 ,maxi)
                   (type ,val-type ,res))
          ;; Do NOT use dotimes-unroll macro for speed
-         (when (>= ,nv +unroll+)
-           (setf ,maxi
-                 (do (,@(loop :for ui :below +unroll+
-                           :for ii :in i-list
-                           :append `((,ii (the fixnum (+ ,s ,ui))
-                                          (the fixnum (+ ,ii +unroll+))))))
+         (setf ,maxi
+               (do (,@(loop :for ui :below +unroll+
+                         :for ii :in i-list
+                         :append `((,ii (the fixnum (+ ,s ,ui))
+                                        (the fixnum (+ ,ii +unroll+))))))
                    ((>= ,(nth 0 i-list) ,iend0) ,(nth 0 i-list))
                  (incf ,res
                        (+ ,@(loop :for ii :in i-list
-                               :append `((* (aref ,va ,ii) (aref ,vb ,ii)))))))))
+                               :append `((* (aref ,va ,ii) (aref ,vb ,ii))))))))
          ;; if nv < unroll or maxi < iend, calculate the rest of elements
          (do ((,i ,maxi (1+ ,i)))
              ((>= ,i ,iend))
@@ -56,7 +54,8 @@
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two double-float vectors va and vb"
-  (declare (type (simple-array double-float (*)) va vb))
+  (declare (optimize (speed 3))
+           (type (simple-array double-float (*)) va vb))
   (v*v double-float va vb))
 
 
@@ -66,5 +65,6 @@
                 lv*v))
 (defun lv*v (va vb)
   "Dot product with two double-float vectors va and vb"
-  (declare (type (simple-array long-float (*)) va vb))
+  (declare (optimize (speed 3))
+           (type (simple-array long-float (*)) va vb))
   (v*v long-float va vb))
