@@ -5,15 +5,14 @@
 (in-package :cl3a.mmmult)
 
 
-(defmacro m*m-ker (val-type si ni sk nk sj nj nra nv ncb ma mb mc)
+(defmacro m*m-ker (val-type si ni sk nk nra nv ncb ma mb mc)
   "Multiply matrix and matrix (unrolling version)"
-  (with-gensyms (iend jend jend0 kend i j k maik imb imc maxj)
+  (with-gensyms (iend jend0 kend i j k maik imb imc maxj)
     `(let* ((,iend (min ,nra (the fixnum (+ ,si ,ni))))
-            (,jend (min ,ncb (the fixnum (+ ,sj ,nj))))
-            (,jend0 (min-factor ,jend +unroll+))
+            (,jend0 (min-factor ,ncb +unroll+))
             (,kend (min ,nv (the fixnum (+ ,sk ,nk))))
             (,maxj 0))
-       (declare (type fixnum ,iend ,jend ,jend0 ,kend ,maxj))
+       (declare (type fixnum ,iend ,jend0 ,kend ,maxj))
        (do ((,i ,si (1+ ,i)))
            ((>= ,i ,iend))
          (do ((,k ,sk (1+ ,k)))
@@ -24,7 +23,7 @@
              (declare (type ,val-type ,maik)
                       (type fixnum ,imb ,imc))
              (setf ,maxj
-                   (do ((,j ,sj (+ ,j +unroll+)))
+                   (do ((,j 0 (+ ,j +unroll+)))
                        ((>= ,j ,jend0) ,j)
                      ,@(loop :repeat +unroll+
                           :with form = `((incf (row-major-aref ,mc ,imc)
@@ -33,23 +32,22 @@
                                          (incf ,imc))
                           :append form)))
              ;; if jend < +unroll+ or (mod jend +unroll+) > 0
-             (when (> ,jend ,maxj)
-               (do ((,j ,maxj (1+ ,j)))
-                   ((>= ,j ,jend))
-                 (incf (row-major-aref ,mc ,imc)
-                       (* ,maik (row-major-aref ,mb ,imb)))
-                 (incf ,imb)
-                 (incf ,imc)))))))))
+             (do ((,j ,maxj (1+ ,j)))
+                 ((>= ,j ,ncb))
+               (incf (row-major-aref ,mc ,imc)
+                     (* ,maik (row-major-aref ,mb ,imb)))
+               (incf ,imb)
+               (incf ,imc))))))))
 
 
 
 (defmacro m*m (val-type ma mb mc)
-  (with-gensyms (calc nra nca nrb ncb nv mi mk mj i k j)
-    `(flet ((,calc (si ni sk nk sj nj nra nv ncb ma mb mc)
+  (with-gensyms (calc nra nca nrb ncb nv nt m i k)
+    `(flet ((,calc (si ni sk nk nra nv ncb ma mb mc)
               (declare (optimize (speed 3) (debug 0) (safety 0))
-                       (type fixnum si ni sk nk sj nj nra nv ncb)
+                       (type fixnum si ni sk nk nra nv ncb)
                        (type (simple-array ,val-type (* *)) ma mb mc))
-              (m*m-ker ,val-type si ni sk nk sj nj nra nv ncb ma mb mc)))
+              (m*m-ker ,val-type si ni sk nk nra nv ncb ma mb mc)))
        (declare (inline ,calc))
        (let* ((,nra (array-dimension ,ma 0))
               (,nca (array-dimension ,ma 1))
@@ -59,16 +57,12 @@
                           (different-length-warn ,nca ,nrb)
                           (min ,nca ,nrb))
                          (t ,nca)))
-              ;; (,nt (min ,nra ,ncb))
-              ;; (,m (block-size ,nt)))
-              (,mi 4)
-              (,mk 128)
-              (,mj 1024))
-         (declare (type fixnum ,nra ,nca ,nrb ,ncb ,nv ,mi ,mk ,mj))
-         (dotimes-interval (,i ,mi ,nra)
-           (dotimes-interval (,k ,mk ,nv)
-             (dotimes-interval (,j ,mj ,ncb)
-               (,calc ,i ,mi ,k ,mk ,j ,mj ,nra ,nv ,ncb ,ma ,mb ,mc))))))))
+              (,nt (min ,nra ,ncb))
+              (,m (block-size ,nt)))
+         (declare (type fixnum ,nra ,nca ,nrb ,ncb ,nv ,nt ,m))
+         (dotimes-interval (,i ,m ,nra)
+           (dotimes-interval (,k ,m ,nv)
+             (,calc ,i ,m ,k ,m ,nra ,nv ,ncb ,ma ,mb ,mc)))))))
 
 
 (declaim (ftype (function ((simple-array double-float (* *))
@@ -77,7 +71,8 @@
                 dm*m))
 (defun dm*m (ma mb mc)
   "Multiply matrix and matrix of double-float"
-  (declare (type (simple-array double-float (* *)) ma mb mc))
+  (declare (optimize (speed 3))
+           (type (simple-array double-float (* *)) ma mb mc))
   (m*m double-float ma mb mc))
 
 
@@ -86,5 +81,6 @@
                            (simple-array long-float (* *))))
                 lm*m))
 (defun lm*m (ma mb mc)
-  (declare (type (simple-array long-float (* *)) ma mb mc))
+  (declare (optimize (speed 3))
+           (type (simple-array long-float (* *)) ma mb mc))
   (m*m long-float ma mb mc))

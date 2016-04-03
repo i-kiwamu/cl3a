@@ -36,15 +36,14 @@
                     :for ivbi :in ivb-list
                     :append `((incf (the fixnum ,imai) ,unroll)
                               (incf (the fixnum ,ivbi) ,unroll))))
-             ;; if nc < unroll or nc is odd number
-             (when (> ,nc ,jend0)
-               (do ((,j ,jend0 (1+ ,j)))
-                   ((>= ,j ,nc))
-                 (incf ,vci
-                       (* (row-major-aref ,ma ,(nth 0 ima-list))
-                          (row-major-aref ,vb ,(nth 0 ivb-list))))
-                 (incf ,(nth 0 ima-list))
-                 (incf ,(nth 0 ivb-list))))
+             ;; if nc < unroll or (mod nc unroll) > 0
+             (do ((,j ,jend0 (1+ ,j)))
+                 ((>= ,j ,nc))
+               (incf ,vci
+                     (* (row-major-aref ,ma ,(nth 0 ima-list))
+                        (row-major-aref ,vb ,(nth 0 ivb-list))))
+               (incf ,(nth 0 ima-list))
+               (incf ,(nth 0 ivb-list)))
              (incf (aref ,vc ,i) ,vci)))))))
 
 
@@ -76,7 +75,8 @@
                 dm*v))
 (defun dm*v (ma vb vc)
   "Multiply matrix and vector of double-float"
-  (declare (type (simple-array double-float (* *)) ma)
+  (declare (optimize (speed 3))
+           (type (simple-array double-float (* *)) ma)
            (type (simple-array double-float (*)) vb vc))
   (m*v double-float ma vb vc))
 
@@ -87,6 +87,7 @@
                 lm*v))
 (defun lm*v (ma vb vc)
   "Multiply matrix and vector of long-float"
-  (declare (type (simple-array long-float (* *)) ma)
+  (declare (optimize (speed 3))
+           (type (simple-array long-float (* *)) ma)
            (type (simple-array long-float (*)) vb vc))
   (m*v long-float ma vb vc))

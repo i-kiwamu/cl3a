@@ -10,8 +10,11 @@
            :min-factor
            :dotimes-unroll
            :dotimes-interval
+           :dotimes-interval2
            :type-byte-length
-           :block-size))
+           :block-size
+           :copy-matrix
+           :copy-matrix-transpose))
 (in-package :cl3a.utilities)
 
 
@@ -87,6 +90,22 @@
            ,@body))
        nil)))
 
+(defmacro dotimes-interval2 ((i s n) (m m-val) &body body)
+  (with-gensyms (n0 iend0)
+    `(let* ((,m ,m-val)
+            (,n0 (min-factor ,n ,m))
+            (,iend0 (+ ,n0 ,s)))
+       (declare (type fixnum ,m ,n0 ,iend0))
+       (do ((,i ,s (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,iend0))
+         ,@body)
+       (when (> ,n ,n0)
+         ;; execution only once
+         (setf ,m (- ,n ,n0))
+         (let ((,i ,iend0))
+           ,@body))
+       nil)))
+
 
 (declaim (ftype (function (symbol) fixnum) type-byte-length))
 (defun type-byte-length (val-type)
@@ -97,12 +116,16 @@
     (long-float 16)))
 
 
-(declaim (ftype (function (integer) integer) block-size))
-(defun block-size (n)
+(declaim (ftype (function (integer &key (:l1 boolean)) integer)
+                block-size))
+(defun block-size (n &key l1)
   "See Lam et al. 1991 The cache performance and optimizations of blocked algorithms"
-  (declare (type integer n))
-  (let ((n-half (ifloor n 2))
-        (cache-size (ifloor +L2-size+ 4)))  ;; 1 word = 4 byte
+  (declare (type integer n)
+           (type boolean l1))
+  (let* ((n-half (ifloor n 2))
+         (cache-size (if l1
+                         (ifloor +L1-size+ 4)
+                         (ifloor +L2-size+ 4))))  ;; 1 word = 4 byte
     (declare (type integer n-half cache-size))
     (loop :while t
        :with max-width :of-type integer = (min n cache-size)
@@ -118,3 +141,36 @@
        (when (>= di di0)
          (return (min max-width di)))
        :do (setf max-width di0))))
+
+
+(defmacro copy-matrix (ma si ni sj nj mb)
+  (with-gensyms (i j nra nca nrb ncb nr nc rma rmb)
+    `(let* ((,nra (array-dimension ,ma 0))
+            (,nca (array-dimension ,ma 1))
+            (,nrb (array-dimension ,mb 0))
+            (,ncb (array-dimension ,mb 1))
+            (,nr (min ,ni ,nra ,nrb))
+            (,nc (min ,nj ,nca ,ncb)))
+       (declare (type fixnum ,nra ,nca ,nrb ,ncb ,nr ,nc))
+       (dotimes (,i ,nr)
+         (let ((,rma (array-row-major-index ,ma (+ ,i ,si) ,sj))
+               (,rmb (array-row-major-index ,mb ,i 0)))
+           (declare (type fixnum ,rma ,rmb))
+           (dotimes (,j ,nc)
+             (setf (row-major-aref ,mb ,rmb)
+                   (row-major-aref ,ma ,rma))
+             (incf ,rma)
+             (incf ,rmb)))))))
+
+
+(defmacro copy-matrix-transpose (ma si ni sj nj mb)
+  (with-gensyms (i j nrb ncb nr nc)
+    `(let* ((,nrb (array-dimension ,mb 0))
+            (,ncb (array-dimension ,mb 1))
+            (,nr (min ,ni ,ncb))
+            (,nc (min ,nj ,nrb)))
+       (declare (type fixnum ,nrb ,ncb ,nr ,nc))
+       (dotimes (,i ,nr)
+         (dotimes (,j ,nc)
+           (setf (aref ,mb ,j ,i)
+                 (aref ,ma (+ ,i ,si) (+ ,j ,sj))))))))
