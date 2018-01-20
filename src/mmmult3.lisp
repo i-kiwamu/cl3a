@@ -5,8 +5,6 @@
 (in-package :cl3a.mmmult3)
 
 
-(declaim (ftype (function (symbol integer integer) integer)
-                block-size))
 (defun block-size (val-type n cache-size)
   "calculate the optimum block size for matrix multiplication"
   ;; Block size should satisfy: (type-byte)*3*(block-size)^2 < cache-size
@@ -16,10 +14,9 @@
   ;;   n: the matrix size (min nrow ncol)
   ;;   cache-size: size of cache (+cache-line+, +L1-size+, +L2-size+, or +L3-size+)
   (declare (type integer n cache-size))
-  (let ((bs (- (isqrt
-                (ifloor
-                 (/ cache-size 3 (type-byte-length val-type))))
-               (type-byte-length val-type))))
+  (let ((bs (isqrt
+             (ifloor cache-size 3 (type-byte-length val-type)))))
+  ;; (let ((bs (ifloor cache-size (type-byte-length val-type))))
     (min bs n)))
 
 
@@ -39,32 +36,33 @@
   ;;   ma: input matrix with nr*nv
   ;;   mb: input matrix with nv*nc
   ;;   mc: output matrix with nr*nc
-  (with-gensyms (j0 i j k maik jj)
+  (with-gensyms (j0 i j k maik)
     `(let ((,j0 (min-factor ,ncb +unroll+)))
        (declare (type fixnum ,j0))
-       (do ((,i ,ib (1+ ,i))
-            (>= ,i (+ ,ib ,nrb)))
-           (do ((,k ,kb (1+ ,k))
-                (>= ,k (+ ,kb ,nvb)))
-               (let ((,maik (row-major-aref ,ma (+ (* ,i ,nr) ,k))))
-                 (declare (type ,val-type ,maik))
-                 (do ((,j 0 (+ ,j +unroll+)))
-                     ((>= ,j ,j0) ,j)
-                   ,@(loop :repeat +unroll+
-                        :with form = `((incf (row-major-aref
-                                              ,mc (+ (* ,i ,nr) ,j))
-                                             (* ,maik
-                                                (row-major-aref
-                                                 ,mb (+ (* ,k ,nv) ,j)))))
-                        :append form))
-             ;; if ncb < +unroll+ or (mod ncb +unroll+) > 0
-             (do ((,jj ,j0 (1+ ,jj)))
-                 ((>= ,jj ,ncb))
-               (incf (row-major-aref ,mc (+ (* ,i ,nr) ,jj))
-                     (* ,maik (row-major-aref ,mb (+ (* ,k ,nv) ,jj)))))))))))
+       (do ((,i ,ib (1+ ,i)))
+           ((>= ,i (+ ,ib ,nrb)))
+         (do ((,k ,kb (1+ ,k)))
+             ((>= ,k (+ ,kb ,nvb)))
+           (let ((,maik (row-major-aref ,ma (+ (* ,i ,nr) ,k))))
+             (declare (type ,val-type ,maik))
+             (do ((,j ,jb (+ ,j +unroll+)))
+                 ((>= ,j ,j0) ,j)
+               ,@(loop :repeat +unroll+
+                    :with form = `((incf (row-major-aref
+                                          ,mc (+ (* ,i ,nr) ,j))
+                                         (* ,maik
+                                            (row-major-aref
+                                             ,mb (+ (* ,k ,nv) ,j))))
+                                   (incf ,j))
+                    :append form))
+             ;; if ncb < +unroll+ or (mod ncb +unroll+) > 0, do remain
+             (do ((,j ,j0 (1+ ,j)))
+                 ((>= ,j ,nc))
+               (incf (row-major-aref ,mc (+ (* ,i ,nr) ,j))
+                     (* ,maik (row-major-aref ,mb (+ (* ,k ,nv) ,j)))))))))))
 
 
-(defmacro m*m-tile-cache-line (val-type nr nv nc ma mb mc)
+(defmacro m*m-tile-L1 (val-type nr nv nc ma mb mc)
   "m*m in a tile of cache line size"
   ;; Args
   ;;   val-type: element type of array (double-float or long-float)
@@ -75,22 +73,22 @@
   ;;   mb: input matrix with nv*nc
   ;;   mc: output matrix with nr*nc
   ;; (with-gensyms (nrb nvb ncb ma-sub mb-sub ib jb kb)
-  (with-gensyms (nrb nvb ncb ib jb kb)
-    `(let* ((,nrb (the fixnum (block-size ,val-type ,nr +cache-line+)))
-            (,nvb (the fixnum (block-size ,val-type ,nv +cache-line+)))
-            (,ncb (the fixnum (block-size ,val-type ,nc +cache-line+))))
+  (with-gensyms (nrb nvb ncb ib jb kb nb1 nb2 nb3)
+    `(let* ((,nrb (the fixnum (block-size ',val-type ,nr +L1-size+)))
+            (,nvb (the fixnum (block-size ',val-type ,nv +L1-size+)))
+            (,ncb (the fixnum (block-size ',val-type ,nc +L1-size+))))
             ;; (,ma-sub (make-array (list ,nrb ,nvb)
             ;;                      :element-type ',val-type))
             ;; (,mb-sub (make-array (list ,nvb ,ncb)
             ;;                      :element-type ',val-type)))
        (declare (type fixnum ,nrb ,nvb ,ncb))
                 ;; (type (simple-array ,val-type (* *)) ,ma-sub3 ,mb-sub3))
-       (dotimes-interval3 (,ib 0 ,nr ,nrb)
-         (dotimes-interval3 (,kb 0 ,nv ,nvb)
+       (dotimes-interval2 (,ib 0 ,nr) (,nb1 ,nrb)
+         (dotimes-interval2 (,kb 0 ,nv) (,nb2 ,nvb)
            ; (copy-matrix ,ma ,ib ,nrb ,kb ,nvb ,ma-sub)
-           (dotimes-interval3 (,jb 0 ,nc ,ncb)
+           (dotimes-interval2 (,jb 0 ,nc) (,nb3 ,ncb)
               ; (copy-matrix ,mb ,kb ,nvb ,jb ,ncb ,mb-sub)
-              (m*m-ker ,val-type ,ib ,nrb ,nr ,kb ,nvb ,nv ,jb ,ncb ,nc ,ma ,mb ,mc)))))))
+             (m*m-ker ,val-type ,ib ,nb1 ,nr ,kb ,nb2 ,nv ,jb ,nb3 ,nc ,ma ,mb ,mc)))))))
 
 
 (defmacro m*m (val-type ma mb mc)
@@ -108,7 +106,7 @@
            (,nc (min (array-dimension mb 1)
                      (array-dimension mc 1))))
        (declare (type fixnum ,nr ,nv ,nc))
-       (m*m-tile-cache-line ,val-type ,nr ,nv ,nc ,ma ,mb ,mc))))
+       (m*m-tile-L1 ,val-type ,nr ,nv ,nc ,ma ,mb ,mc))))
 
 
 (declaim (ftype (function ((simple-array double-float (* *))

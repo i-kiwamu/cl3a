@@ -13,7 +13,7 @@
                   :components
                   ((:file "cl3a"
                     :depends-on ("dotprod" "norm" "add_vector" "rotate"
-                                 "mvmult" "mmmult" "transpose"))
+                                 "mvmult" "mmmult3" "transpose"))
                    (:file "utilities")
                    (:file "dotprod"
                           :depends-on ("utilities"))
@@ -25,7 +25,7 @@
                           :depends-on ("utilities"))
                    (:file "mvmult"
                           :depends-on ("utilities"))
-                   (:file "mmmult"
+                   (:file "mmmult3"
                           :depends-on ("utilities"))
                    (:file "transpose"
                           :depends-on ("utilities")))))
