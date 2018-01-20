@@ -11,18 +11,20 @@
            :dotimes-unroll
            :dotimes-interval
            :dotimes-interval2
+           :dotimes-interval3
            :type-byte-length
-           :block-size
            :copy-matrix
            :copy-matrix-transpose))
 (in-package :cl3a.utilities)
 
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defconstant +cache-line+ (the fixnum 64))
   (defconstant +L1-size+ (the fixnum 32768))
   (defconstant +L2-size+ (the fixnum 262144))
+  (defconstant +L3-size+ (the fixnum 4194304))
   (defconstant +associativity+ (the fixnum 8))
-  (defconstant +unroll+ (the fixnum 6)))
+  (defconstant +unroll+ (the fixnum 4)))
 
 
 (defun different-length-warn (na nb)
@@ -48,6 +50,7 @@
 (declaim (ftype (function (integer integer &rest integer) integer)
                 min-factor))
 (defun min-factor (x y0 &rest ys)
+  "calculate x0*y with the minimum m where x = x0*y + m, y = y0*y1*y2*..., and ys = (y1, y2, ...)"
   (declare (type integer x y0)
            (type list ys)
            (dynamic-extent ys))
@@ -75,8 +78,8 @@
                ((>= (the fixnum ,i) ,n))
              ,@body))))))
 
-
 (defmacro dotimes-interval ((i m n) &body body)
+  "loop for i from 0 to n with interval of m"
   (with-gensyms (n0)
     `(let ((,n0 (min-factor ,n ,m)))
        (declare (type fixnum ,n0))
@@ -91,6 +94,7 @@
        nil)))
 
 (defmacro dotimes-interval2 ((i s n) (m m-val) &body body)
+  "loop for i from s to n with interval of m"
   (with-gensyms (n0 iend0)
     `(let* ((,m ,m-val)
             (,n0 (min-factor ,n ,m))
@@ -107,8 +111,26 @@
        nil)))
 
 
+(defmacro dotimes-interval3 ((i s n m) &body body)
+  "loop for i from s to n with interval of m"
+  (with-gensyms (n0 iend0)
+    `(let* ((,n0 (min-factor ,n ,m))
+            (,iend0 (+ ,n0 ,s)))
+       (declare (type fixnum ,n0 ,iend0))
+       (do ((,i ,s (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,iend0))
+         ,@body)
+       (when (> ,n ,n0)
+         ;; execution only once
+         (setf ,m (- ,n ,n0))
+         (let ((,i ,iend0))
+           ,@body))
+       nil)))
+
+
 (declaim (ftype (function (symbol) fixnum) type-byte-length))
 (defun type-byte-length (val-type)
+  "return the size of type"
   (ecase val-type
     (short-float 2)
     (single-float 4)
@@ -116,34 +138,8 @@
     (long-float 16)))
 
 
-(declaim (ftype (function (integer &key (:l1 boolean)) integer)
-                block-size))
-(defun block-size (n &key l1)
-  "See Lam et al. 1991 The cache performance and optimizations of blocked algorithms"
-  (declare (type integer n)
-           (type boolean l1))
-  (let* ((n-half (ifloor n 2))
-         (cache-size (if l1
-                         (ifloor +L1-size+ 4)
-                         (ifloor +L2-size+ 4))))  ;; 1 word = 4 byte
-    (declare (type integer n-half cache-size))
-    (loop :while t
-       :with max-width :of-type integer = (min n cache-size)
-       :and addr :of-type integer = n-half
-       :and di :of-type integer = 0
-       :and dj :of-type integer = 1
-       :and di0 :of-type integer = 1
-       :do (progn
-             (incf addr cache-size)
-             (setf di (ifloor addr n))
-             (setf dj (abs (- (mod addr n) n-half)))
-             (setf di0 (min max-width dj)))
-       (when (>= di di0)
-         (return (min max-width di)))
-       :do (setf max-width di0))))
-
-
 (defmacro copy-matrix (ma si ni sj nj mb)
+  "copy ma ni rows from si and nj cols from sj into mb"
   (with-gensyms (i j nra nca nrb ncb nr nc rma rmb)
     `(let* ((,nra (array-dimension ,ma 0))
             (,nca (array-dimension ,ma 1))

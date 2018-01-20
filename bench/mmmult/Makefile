@@ -10,7 +10,7 @@ BLASLIB = /usr/local/opt/openblas/lib
 FFLAGS = -O3 -fimplicit-none -fbounds-check -lopenblas -L$(BLASLIB) -I$(BLASINC)
 
 CPP = clang++
-EIGENINC = /usr/local/Cellar/eigen/3.2.8/include/eigen3/
+EIGENINC = /usr/local/Cellar/eigen/3.3.4/include/eigen3/
 CPPFLAGS = -O3 -I$(EIGENINC)
 
 

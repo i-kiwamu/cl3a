@@ -10,7 +10,8 @@
     `(let* ((,nr (array-dimension ,ma 0))
             (,nc (array-dimension ,ma 1))
             (,nrc (array-total-size ,ma))
-            (,mat (make-array (list ,nc ,nr) :element-type ',val-type)))
+            (,mat (make-array (list ,nc ,nr) :element-type ',val-type
+                              :initial-element (coerce 0.0 ',val-type))))
        (declare (type fixnum ,nr ,nc)
                 (type (simple-array ,val-type (* *)) ,mat))
        ;; initialize
@@ -20,10 +21,11 @@
        (labels
            ((,rc (n)
               (declare (type fixnum n))
-              (let ((b (the fixnum (* (mod n ,nr) ,nc)))
-                    (r (ifloor n ,nr)))
-                (declare (type fixnum b r))
-                (+ b r)))
+              (let* ((r (mod n ,nr))
+                     (b (* r ,nc))
+                     (n0 (ifloor n ,nr)))
+                (declare (type fixnum r b n0))
+                (+ b n0)))
             (,inext (i n i0)
               (declare (type fixnum i n i0))
               (let ((i2 (1+ i))
@@ -53,7 +55,8 @@
                 dtpose))
 (defun dtpose (ma)
   "transpose matrix of double-float"
-  (declare (type (simple-array double-float (* *)) ma))
+  (declare ;; (optimize (speed 3))
+           (type (simple-array double-float (* *)) ma))
   (tpose double-float ma))
 
 
@@ -62,5 +65,6 @@
                 ltpose))
 (defun ltpose (ma)
   "transpose matrix of long-float"
-  (declare (type (simple-array long-float (* *)) ma))
+  (declare ;; (optimize (speed 3))
+           (type (simple-array long-float (* *)) ma))
   (tpose long-float ma))
