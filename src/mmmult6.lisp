@@ -1,8 +1,8 @@
 (in-package :cl-user)
-(defpackage cl3a.mmmult
-  (:use :cl :alexandria :cl3a.utilities)
+(defpackage cl3a.mmmult6
+  (:use :cl :alexandria :cl-simd :cl3a.utilities)
   (:export :dm*m :lm*m))
-(in-package :cl3a.mmmult)
+(in-package :cl3a.mmmult6)
 
 
 (declaim (ftype (function (integer &key (:l1 boolean)) integer)
@@ -92,22 +92,22 @@
              (,calc ,i ,m ,k ,m ,nra ,nv ,ncb ,ma ,mb ,mc)))))))
 
 
-(declaim (ftype (function ((simple-array double-float (* *))
-                           (simple-array double-float (* *))
-                           (simple-array double-float (* *))))
+(declaim (ftype (function ((sse-array double-float (* *))
+                           (sse-array double-float (* *))
+                           (sse-array double-float (* *))))
                 dm*m))
 (defun dm*m (ma mb mc)
   "Multiply matrix and matrix of double-float"
   (declare (optimize (speed 3) (safety 0))
-           (type (simple-array double-float (* *)) ma mb mc))
+           (type (sse-array double-float (* *)) ma mb mc))
   (m*m double-float ma mb mc))
 
 
-(declaim (ftype (function ((simple-array long-float (* *))
-                           (simple-array long-float (* *))
-                           (simple-array long-float (* *))))
+(declaim (ftype (function ((sse-array long-float (* *))
+                           (sse-array long-float (* *))
+                           (sse-array long-float (* *))))
                 lm*m))
 (defun lm*m (ma mb mc)
   (declare (optimize (speed 3) (safety 0))
-           (type (simple-array long-float (* *)) ma mb mc))
+           (type (sse-array long-float (* *)) ma mb mc))
   (m*m long-float ma mb mc))

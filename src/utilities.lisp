@@ -12,9 +12,7 @@
            :min-factor
            :dotimes-unroll
            :dotimes-interval
-           :dotimes-interval-full
            :dotimes-interval2
-           :dotimes-interval2-full
            :type-byte-length
            :copy-matrix
            :copy-matrix-transpose))
@@ -89,16 +87,6 @@
        (do ((,i 0 (the fixnum (+ ,i ,m))))
            ((>= (the fixnum ,i) ,n0))
          ,@body)
-       nil)))
-
-(defmacro dotimes-interval-full ((i m n) &body body)
-  "loop for i from 0 to n with interval of m"
-  (with-gensyms (n0)
-    `(let ((,n0 (min-factor ,n ,m)))
-       (declare (type fixnum ,n0))
-       (do ((,i 0 (the fixnum (+ ,i ,m))))
-           ((>= (the fixnum ,i) ,n0))
-         ,@body)
        (when (> (the fixnum ,n) ,n0)
          ;; execution only once
          (do ((,i ,n0 (the fixnum (1+ ,i))))
@@ -106,20 +94,8 @@
            ,@body))
        nil)))
 
+
 (defmacro dotimes-interval2 ((i s n) (m m-val) &body body)
-  "loop for i from s to n with interval of m"
-  (with-gensyms (n0 iend0)
-    `(let* ((,m ,m-val)
-            (,n0 (min-factor ,n ,m))
-            (,iend0 (+ ,n0 ,s)))
-       (declare (type fixnum ,m ,n0 ,iend0))
-       (do ((,i ,s (the fixnum (+ ,i ,m))))
-           ((>= (the fixnum ,i) ,iend0))
-         ,@body)
-       nil)))
-
-
-(defmacro dotimes-interval2-full ((i s n) (m m-val) &body body)
   "loop for i from s to n with interval of m"
   (with-gensyms (n0 iend0)
     `(let* ((,m ,m-val)
