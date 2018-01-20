@@ -8,4 +8,4 @@ bench/*/bench-blas
 bench/*/bench-eigen
 bench/bechmarks.numbers
 *.dtps
-bench/*/Instruments.trace
+bench/*/Instruments.tracequicklisp/
