@@ -25,7 +25,7 @@
   (defconstant +L2-size+ (the fixnum 262144))
   (defconstant +L3-size+ (the fixnum 4194304))
   (defconstant +associativity+ (the fixnum 8))
-  (defconstant +unroll+ (the fixnum 4)))
+  (defconstant +unroll+ (the fixnum 8)))
 
 
 (defun different-length-warn (na nb)

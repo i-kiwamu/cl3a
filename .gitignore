@@ -9,3 +9,4 @@ bench/*/bench-eigen
 bench/bechmarks.numbers
 *.dtps
 bench/*/Instruments.tracequicklisp/
+quicklisp/*

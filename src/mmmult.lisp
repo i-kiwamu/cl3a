@@ -13,8 +13,8 @@
            (type boolean l1))
   (let* ((n-half (ifloor n 2))
          (cache-size (if l1
-                         (ifloor +L1-size+ 8)
-                         (ifloor +L2-size+ 8))))  ;; 1 word = 4 byte
+                         (ifloor (* +L1-size+ +associativity+) 8)
+                         (ifloor (* +L2-size+ +associativity+) 8))))  ;; 1 word = 4 byte
     (declare (type integer n-half cache-size))
     (loop :while t
        :with max-width :of-type integer = (min n cache-size)
