@@ -50,7 +50,7 @@
   (with-gensyms (i j mmi mmj)
     `(dotimes-interval2 (,i ,si ,mi) (,mmi +mr+)
        (dotimes-interval2 (,j ,sj ,mj) (,mmj +nr+)
-         (funcall ,calc ,i ,j ,mmi ,mmj ,mi ,mj ,mk ,ma-sub ,mb-sub ,mc)))))
+         (funcall #',calc ,i ,j ,mmi ,mmj ,mi ,mj ,mk ,ma-sub ,mb-sub ,mc)))))
 
 
 (defmacro m*m-block (val-type nr nv nc ma mb mc)
@@ -63,13 +63,17 @@
   ;;   ma: input matrix with nr*nv
   ;;   mb: input matrix with nv*nc
   ;;   mc: output matrix with nr*nc
-  (with-gensyms (calc nrc nvc ma-sub mb-sub mi mk i k)
+  (with-gensyms (calc copy nrc nvc ma-sub mb-sub mi mk i k)
     `(flet ((,calc (i j mmi mmj mi mj mk ma-sub mb-sub mc)
               (declare (optimize (speed 3) (debug 0) (safety 0))
                        (type fixnum i j mmi mmj mi mj mk)
                        (type (simple-array ,val-type (* *)) ma-sub mb-sub mc))
-              (m*m-ker ,val-type i j mmi mmj mi mj mk ma-sub mb-sub mc)))
-       (declare (inline ,calc))
+              (m*m-ker ,val-type i j mmi mmj mi mj mk ma-sub mb-sub mc))
+            (,copy (ma si ni sj nj mb)
+              (declare (optimize (speed 3) (debug 0) (safety 0))
+                       (type (simple-array ,val-type (* *)) ma mb))
+              (copy-matrix ma si ni sj nj mb)))
+       (declare (inline ,calc ,copy))
        (let* ((,nrc (min ,nr (the fixnum +mc+)))  ; block size of row
               (,nvc (min ,nv (the fixnum +kc+)))  ; block size of col
               (,ma-sub (make-array (list ,nrc ,nvc)
@@ -82,9 +86,9 @@
                   (type (simple-array ,val-type (* *)) ,ma-sub ,mb-sub))
          (dotimes-interval2 (,k 0 ,nv) (,mk ,nvc)
            ;; (copy-matrix-transpose ,mb ,k ,mk 0 ,nc ,mb-sub)
-           (copy-matrix ,mb ,k ,mk 0 ,nc ,mb-sub)
+           (,copy ,mb ,k ,mk 0 ,nc ,mb-sub)
            (dotimes-interval2 (,i 0 ,nr) (,mi ,nrc)
-             (copy-matrix ,ma ,i ,mi ,k ,mk ,ma-sub)
+             (,copy ,ma ,i ,mi ,k ,mk ,ma-sub)
              (m*m-panel #',calc ,i 0 ,mi ,nc ,mk ,ma-sub ,mb-sub ,mc)))))))
 
 

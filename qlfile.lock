@@ -1,7 +1,7 @@
 ("quicklisp" .
  (:class qlot.source.ql:source-ql-all
   :initargs (:project-name "quicklisp" :%version :latest)
-  :version "2017-12-27"))
+  :version "2018-01-31"))
 ("cl3a" .
  (:class qlot.source.git:source-git
   :initargs (:project-name "cl3a" :remote-url "https://github.com/i-kiwamu/cl3a.git")

@@ -1,0 +1,36 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+
+
+#+sbcl (sb-posix:chdir "../../")
+(ql:quickload "cl3a" :silent t)
+#+sbcl (sb-posix:chdir "./bench/Lam")
+
+
+(defun run-bench (n b)
+  (declare (type fixnum n b))
+  (let ((ma (make-array (list n n)
+                        :element-type 'double-float))
+        (mb (make-array (list n n)
+                        :element-type 'double-float))
+        (mc (make-array (list n n)
+                        :element-type 'double-float)))
+    (declare (type (simple-array double-float (* *)) ma mb mc))
+    (dotimes (i n)
+      (dotimes (j n)
+        (setf (aref ma i j) (random 1d0))
+        (setf (aref mb i j) (random 1d0))))
+    (time (cl3a:dm*m b ma mb mc))))
+
+
+(defun main (n-str &rest argv)
+  (declare (ignorable argv))
+  (let ((n (parse-integer n-str)))
+    (declare (type fixnum n))
+    (do ((b 8 (+ b 8)))
+        ((> b 120))
+      (format t "Tile size: ~A~%" b)
+      (run-bench n b))))

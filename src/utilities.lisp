@@ -79,6 +79,7 @@
                ((>= (the fixnum ,i) ,n))
              ,@body))))))
 
+
 (defmacro dotimes-interval ((i m n) &body body)
   "loop for i from 0 to n with interval of m"
   (with-gensyms (n0)
