@@ -3,13 +3,13 @@ sudo: required
 
 env:
   global:
-    - PATH=~/.roswell/bin:$PATH
+    - PATH=$HOME/.roswell/bin:$PATH
     - ROSWELL_INSTALL_DIR=$HOME/.roswell
   matrix:
     - LISP=sbcl-bin
     - LISP=ccl-bin
-    - LISP=clisp
-    - LISP=abcl
+    # - LISP=clisp
+    # - LISP=abcl
 
 install:
   # Install Roswell
