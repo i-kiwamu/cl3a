@@ -14,6 +14,7 @@
                   ((:file "cl3a"
                     :depends-on ("dotprod" "norm" "add_vector" "rotate"
                                  "mvmult" "mmmult_Goto" "transpose"))
+                   (:file "transpose")
                    (:file "utilities")
                    (:file "dotprod"
                           :depends-on ("utilities"))
@@ -26,7 +27,5 @@
                    (:file "mvmult"
                           :depends-on ("utilities"))
                    (:file "mmmult_Goto"
-                          :depends-on ("utilities"))
-                   (:file "transpose"
-                          :depends-on ("utilities")))))
+                          :depends-on ("utilities" "transpose")))))
     :in-order-to ((test-op (load-op cl3a-test))))

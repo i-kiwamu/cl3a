@@ -10,3 +10,4 @@ bench/bechmarks.numbers
 *.dtps
 bench/*/Instruments.tracequicklisp/
 quicklisp/*
+bench/Goto/bench-Goto
