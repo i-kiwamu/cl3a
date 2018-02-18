@@ -1,8 +1,42 @@
 (in-package :cl-user)
 (defpackage cl3a.mmmult_Goto
-  (:use :cl :alexandria :cl3a.utilities)
+  (:use :cl :alexandria :cl3a.utilities :cl3a.mmmult7vop)
   (:export :gemm1 :gemm3 :dm*m))
 (in-package :cl3a.mmmult_Goto)
+
+
+(declaim (ftype (function ((simple-array double-float (*))
+                           fixnum)
+                          (sb-kernel:simd-pack double-float))
+                load2-sse-from-array))
+(defun load2-sse-from-array (matv i)
+  (declare (type (simple-array double-float (*)) matv)
+           (type fixnum i))
+  (let ((x1 (row-major-aref matv i))
+        (x2 (row-major-aref matv (1+ i))))
+    (declare (type double-float x1 x2))
+    (sb-kernel:%make-simd-pack-double x1 x2)))
+
+
+(defmacro gebp-reg-ker (t2 Atd ia Bp ib cij)
+  (with-gensyms (p0 pp)
+    `(let ((,p0 (min-factor ,t2 +unroll+)))
+       (declare (type fixnum ,p0))
+       (do ((,pp 0 (+ ,pp +unroll+)))
+           ((>= ,pp ,p0))
+         ,@(loop :repeat +unroll+
+              :append `((incf ,cij
+                              (* (row-major-aref ,Atd ,ia)
+                                 (row-major-aref ,Bp ,ib)))
+                        (incf ,ia)
+                        (incf ,ib))))
+       (do ((,pp ,p0 (1+ ,pp)))
+           ((>= ,pp ,t2))
+         (incf ,cij (* (row-major-aref ,Atd ,ia)
+                       (row-major-aref ,Bp ,ib)))
+         (incf ,ia)
+         (incf ,ib))
+       ,cij)))
 
 
 (declaim (ftype (function (fixnum fixnum fixnum fixnum
@@ -10,10 +44,9 @@
                            (simple-array double-float (* *))
                            fixnum
                            (simple-array double-float (* *))))
-                gebp-reg)
-         (inline gebp-reg))
+                gebp-reg))
 (defun gebp-reg (mr t1 t2 t3 Atd Bp jr Caux)
-  "kernel program of GEBP: Caux += Atd * Bp[ib]"
+  "register-scale program of GEBP: Caux += Atd * Bp[ib]"
   ;; Args
   ;;   mr: block size of row of A & C
   ;;   t1: length of row of A = length of row of C
@@ -26,20 +59,36 @@
   (declare (optimize (speed 3) (safety 0))
            (type fixnum mr t1 t2 t3 jr)
            (type (simple-array double-float (* *)) Atd Bp Caux))
-  (dotimes-interval2 (ir 0 t1) (t4 mr)
-    (dotimes (i t4)
-      (dotimes (j t3)
-        (let ((cij (aref Caux (+ ir i) j))
-              (ia (array-row-major-index Atd (+ ir i) 0))
-              (ib (array-row-major-index Bp (+ jr j) 0)))
-          (declare (type double-float cij)
-                   (type fixnum ia ib))
-          (dotimes-unroll2 (k 0 t2)
-            (incf cij (* (row-major-aref Atd ia)
-                         (row-major-aref Bp ib)))
-            (incf ia)
-            (incf ib))
-          (incf (aref Caux (+ ir i) j) cij))))))
+  (flet ((calc (t2 Atd ia Bp ib cij)
+           (declare (optimize (speed 3) (safety 0))
+                    (type fixnum t2 ia ib)
+                    (type (simple-array double-float (* *)) Atd Bp)
+                    (type double-float cij))
+           (gebp-reg-ker t2 Atd ia Bp ib cij)))
+    (declare (inline calc))
+    (dotimes-interval2 (ir 0 t1) (t4 mr)
+      (dotimes (i t4)
+        (dotimes (j t3)
+          (let ((cij (aref Caux (+ ir i) j))
+                (ia (array-row-major-index Atd (+ ir i) 0))
+                (ib (array-row-major-index Bp (+ jr j) 0)))
+            (declare (type double-float cij)
+                     (type fixnum ia ib))
+            (incf (aref Caux (+ ir i) j)
+                  (calc t2 Atd ia Bp ib cij))
+            ;; (dotimes-unroll2-interval (pp 0 t2 2)
+            ;;   ((incf cij
+            ;;          (simd-sum
+            ;;           (f2* (load2-sse-from-array
+            ;;                 (sb-kernel:%array-data-vector Atd) ia)
+            ;;                (load2-sse-from-array
+            ;;                 (sb-kernel:%array-data-vector Bp) ib))))
+            ;;    (incf ia 2)
+            ;;    (incf ib 2))
+            ;;   ((incf cij
+            ;;          (* (row-major-aref Atd ia)
+            ;;             (row-major-aref Bp ib)))))
+            ))))))
 
 
 (declaim (ftype (function (fixnum fixnum fixnum fixnum fixnum
@@ -78,7 +127,7 @@
              (let ((rmc (array-row-major-index C (+ ic ii) jr))
                    (rmcaux (array-row-major-index Caux ii 0)))
                (declare (type fixnum rmc rmcaux))
-               (dotimes-unroll2 (jj 0 t3)
+               (dotimes (jj t3)
                  (incf (row-major-aref C rmc)
                        (row-major-aref Caux rmcaux))
                  (incf rmc)
@@ -210,10 +259,12 @@
 (defun dm*m (A B C)
   (declare (optimize (speed 3) (safety 0))
            (type (simple-array double-float (* *)) A B C))
-  (gemm1 512 256 4 4 A B C))
+  (gemm1 128 1024 8 16 A B C))
   ;; (gemm1 1024 32 4 512 A B C))
-  ;; (gemm1 12 8 4 2 A B C))
+  ;; (gemm1 256 512 8 2 A B C))
+  ;; (gemm1 12 4 2 2 A B C))
   ;; (gemm3 512 256 4 4 A B C))
   ;; (gemm3 1024 32 4 512 A B C))
+  ;; (gemm3 256 512 8 2 A B C))
   ;; (gemm3 12 8 4 2 A B C))
 
