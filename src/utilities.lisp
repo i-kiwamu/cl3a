@@ -18,7 +18,9 @@
            :copy-matrix/generic
            :copy-matrix/double-float
            :copy-matrix/long-float
-           :copy-matrix-transpose/double-float))
+           :copy-matrix-transpose/double-float
+           :let-mat-dotimes-cinterval2
+           :let-mat-dotimes-rinterval2))
 (in-package :cl3a.utilities)
 
 
@@ -100,12 +102,9 @@
        (do ((,i 0 (the fixnum (+ ,i ,m))))
            ((>= (the fixnum ,i) ,n0))
          ,@body)
-       (when (> (the fixnum ,n) ,n0)
-         ;; execution only once
-         (do ((,i ,n0 (the fixnum (1+ ,i))))
-             ((>= (the fixnum ,i) (1+ ,n0)))
-           ,@body))
-       nil)))
+       (do ((,i ,n0 (the fixnum (1+ ,i))))
+           ((>= (the fixnum ,i) (1+ ,n0)))
+         ,@body))))
 
 
 (defmacro dotimes-interval2 ((i s n) (m m-val) &body body)
@@ -122,8 +121,7 @@
          ;; execution only once
          (setf ,m (- ,n ,n0))
          (let ((,i ,iend0))
-           ,@body))
-       nil)))
+           ,@body)))))
 
 
 (declaim (ftype (function (symbol) fixnum) type-byte-length))
@@ -293,3 +291,49 @@
 ;;                      (if (= i rma) tmp (row-major-aref mb i)))
 ;;                (setf next i)
 ;;                :while (> next rma))))))))
+
+
+(defmacro let-mat-dotimes-cinterval2
+    ((i s n) (m m-val) (ma nr val-type) &body body)
+  "let ma of nr*m matrix, loop for i from s to n with interval of m"
+  (with-gensyms (n0 iend0)
+    `(let* ((,m ,m-val)
+            (,n0 (min-factor ,n ,m))
+            (,iend0 (+ ,n0 ,s))
+            (,ma (make-array (list ,nr ,m)
+                             :element-type ',val-type)))
+       (declare (type fixnum ,m ,n0 ,iend0)
+                (type (simple-array ,val-type (* *))))
+       (do ((,i ,s (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,iend0))
+         ,@body)
+       (when (> ,n ,n0)
+         ;; execution only once
+         (setf ,m (- ,n ,n0))
+         (setf ,ma (make-array (list ,nr ,m)
+                               :element-type ',val-type))
+         (let ((,i ,iend0))
+           ,@body)))))
+
+
+(defmacro let-mat-dotimes-rinterval2
+    ((i s n) (m m-val) (ma nc val-type) &body body)
+  "let ma of m*nc matrix, loop for i from s to n with interval of m"
+  (with-gensyms (n0 iend0)
+    `(let* ((,m ,m-val)
+            (,n0 (min-factor ,n ,m))
+            (,iend0 (+ ,n0 ,s))
+            (,ma (make-array (list ,m ,nc)
+                             :element-type ',val-type)))
+       (declare (type fixnum ,m ,n0 ,iend0)
+                (type (simple-array ,val-type (* *))))
+       (do ((,i ,s (the fixnum (+ ,i ,m))))
+           ((>= (the fixnum ,i) ,iend0))
+         ,@body)
+       (when (> ,n ,n0)
+         ;; execution only once
+         (setf ,m (- ,n ,n0))
+         (setf ,ma (make-array (list ,m ,nc)
+                               :element-type ',val-type))
+         (let ((,i ,iend0))
+           ,@body)))))

@@ -1,8 +1,8 @@
 (in-package :cl-user)
-(defpackage cl3a.mmmult6
+(defpackage cl3a.mmmult7
   (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities)
   (:export :dm*m :f2+ :f2* :load2-sse-from-array :store2-sse-to-array))
-(in-package :cl3a.mmmult6)
+(in-package :cl3a.mmmult7)
 
 
 (defknown f2+ ((simd-pack double-float)
@@ -15,22 +15,22 @@
     (simd-pack double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
-(defknown load2-sse-from-array ((simple-array double-float (*))
-                                 fixnum)
-    (simd-pack double-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-(defknown store2-sse-to-array ((simple-array double-float (*))
-                               fixnum
-                               (simd-pack double-float))
-    double-float
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
+;; (defknown load2-sse-from-array ((simple-array double-float (*))
+;;                                  fixnum)
+;;     (simd-pack double-float)
+;;     (movable flushable always-translatable)
+;;   :overwrite-fndb-silently t)
+;; (defknown store2-sse-to-array ((simple-array double-float (*))
+;;                                fixnum
+;;                                (simd-pack double-float))
+;;     (simple-array double-float (*))
+;;     (movable flushable always-translatable)
+;;   :overwrite-fndb-silently t)
 
 (in-package :sb-vm)
 
-(define-vop (cl3a.mmmult6::f2+)
-  (:translate cl3a.mmmult6::f2+)
+(define-vop (cl3a.mmmult7::f2+)
+  (:translate cl3a.mmmult7::f2+)
   (:policy :fast-safe)
   (:args (x :scs (double-sse-reg) :target res)
          (y :scs (double-sse-reg)))
@@ -44,8 +44,8 @@
            (move res x)
            (inst addpd res y)))))
 
-(define-vop (cl3a.mmmult6::f2*)
-  (:translate cl3a.mmmult6::f2*)
+(define-vop (cl3a.mmmult7::f2*)
+  (:translate cl3a.mmmult7::f2*)
   (:policy :fast-safe)
   (:args (x :scs (double-sse-reg) :target res)
          (y :scs (double-sse-reg)))
@@ -59,59 +59,89 @@
            (move res x)
            (inst mulpd res y)))))
 
-(define-vop (cl3a.mmmult6::load2-sse-from-array)
-  (:translate cl3a.mmmult6::load2-sse-from-array)
-  (:policy :fast-safe)
-  (:args (object :scs (descriptor-reg) :target res)
-         (index :scs (any-reg immediate)))
-  (:arg-types simple-array-double-float tagged-num)
-  (:temporary (:sc double-reg) tmp)
-  (:results (res :scs (double-sse-reg) :from (:argument 0)))
-  (:result-types simd-pack-double)
-  (:generator 7
-    (inst movsd res
-          (make-ea-for-float-ref object index 0 8
-                                 :scale (ash 1 (- word-shift
-                                                  n-fixnum-tag-bits))))
-    (inst movsd tmp 
-          (make-ea-for-float-ref object index 1 8
-                                 :scale (ash 1 (- word-shift
-                                                  n-fixnum-tag-bits))))
-    (inst unpcklpd res tmp)))
+;; (define-vop (cl3a.mmmult7::load2-sse-from-array)
+;;   (:translate cl3a.mmmult7::load2-sse-from-array)
+;;   (:policy :fast-safe)
+;;   (:args (object :scs (descriptor-reg) :target res)
+;;          (index :scs (any-reg immediate)))
+;;   (:arg-types simple-array-double-float tagged-num)
+;;   (:temporary (:sc double-reg) tmp)
+;;   (:results (res :scs (double-sse-reg) :from (:argument 0)))
+;;   (:result-types simd-pack-double)
+;;   (:generator 7
+;;     (inst movsd res
+;;           (make-ea-for-float-ref object index 0 8
+;;                                  :scale (ash 1 (- word-shift
+;;                                                   n-fixnum-tag-bits))))
+;;     (inst movsd tmp 
+;;           (make-ea-for-float-ref object index 1 8
+;;                                  :scale (ash 1 (- word-shift
+;;                                                   n-fixnum-tag-bits))))
+;;     (inst unpcklpd res tmp)))
 
-(define-vop (cl3a.mmmult6::store2-sse-to-array)
-  (:translate cl3a.mmmult6::store2-sse-to-array)
-  (:policy :fast-safe)
-  (:args (object :scs (descriptor-reg))
-         (index :scs (any-reg immediate))
-         (value :scs (double-sse-reg)))
-  (:arg-types simple-array-double-float tagged-num simd-pack-double)
-  (:temporary (:sc double-reg) tmp)
-  (:generator 20
-    (inst xorpd tmp tmp)
-    (move tmp value)
-    (inst movsd
-          (make-ea-for-float-ref object index 0 8
-                                 :scale (ash 1 (- word-shift
-                                                  n-fixnum-tag-bits)))
-          tmp)
-    (inst psrldq tmp 8)
-    (inst movsd
-          (make-ea-for-float-ref object index 1 8
-                                 :scale (ash 1 (- word-shift
-                                                  n-fixnum-tag-bits)))
-          tmp)))
+;; (define-vop (cl3a.mmmult7::store2-sse-to-array)
+;;   (:translate cl3a.mmmult7::store2-sse-to-array)
+;;   (:policy :fast-safe)
+;;   (:args (object :scs (descriptor-reg))
+;;          (index :scs (any-reg immediate))
+;;          (value :scs (double-sse-reg)))
+;;   (:arg-types simple-array-double-float tagged-num simd-pack-double)
+;;   (:temporary (:sc double-reg) tmp)
+;;   (:generator 20
+;;     (inst xorpd tmp tmp)
+;;     (move tmp value)
+;;     (inst movsd
+;;           (make-ea-for-float-ref object index 0 8
+;;                                  :scale (ash 1 (- word-shift
+;;                                                   n-fixnum-tag-bits)))
+;;           tmp)
+;;     (inst psrldq tmp 8)
+;;     (inst movsd
+;;           (make-ea-for-float-ref object index 1 8
+;;                                  :scale (ash 1 (- word-shift
+;;                                                   n-fixnum-tag-bits)))
+;;           tmp)))
 
-(in-package :cl3a.mmmult6)
+(in-package :cl3a.mmmult7)
 
-(macrolet ((define-stub (name)
-             `(defun ,name (x y)
-                (,name x y))))
-  (define-stub f2+)
-  (define-stub f2*)
-  (define-stub load2-sse-from-array))
-(defun store2-sse-to-array (m i s)
-  (store2-sse-to-array m i s))
+(defun f2+ (x y)
+  (f2+ x y))
+
+(defun f2* (x y)
+  (f2* x y))
+
+;; (defun load2-sse-from-array (mat i)
+;;   (load2-sse-from-array mat i))
+(declaim (ftype (function ((simple-array double-float (*))
+                           fixnum)
+                          (simd-pack double-float))
+                load2-sse-from-array)
+         (inline load2-sse-from-array))
+(defun load2-sse-from-array (matv i)
+  (declare (type (simple-array double-float (*)) matv)
+           (type fixnum i))
+  (let ((x1 (row-major-aref matv i))
+        (x2 (row-major-aref matv (1+ i))))
+    (declare (type double-float x1 x2))
+    (sb-kernel:%make-simd-pack-double x1 x2)))
+
+;; (defun store2-sse-to-array (mat i simd)
+;;   (store2-sse-to-array mat i simd))
+(declaim (ftype (function ((simple-array double-float (*))
+                           fixnum
+                           (simd-pack double-float)))
+                store2-sse-to-array)
+         (inline store2-sse-to-array))
+(defun store2-sse-to-array (matv i simd)
+  (declare (type (simple-array double-float (*)) matv)
+           (type fixnum i)
+           (type (simd-pack double-float) simd))
+  (multiple-value-bind (x1 x2)
+      (sb-kernel:%simd-pack-doubles simd)
+    (setf (row-major-aref matv i) x1)
+    (incf i)
+    (setf (row-major-aref matv i) x2)))
+
 
 (declaim (ftype (function (integer &key (:l1 boolean)) integer)
                 tile-size))
@@ -152,23 +182,20 @@
          (do ((,k ,sk (1+ ,k)))
              ((>= ,k ,kend))
            (let* ((,maik (aref ,ma ,i ,k))
-                  (,maiksse (%make-simd-pack-double ,maik ,maik))
+                  (,maiksse (sb-kernel:%make-simd-pack-double ,maik ,maik))
                   (,imb (array-row-major-index ,mb ,k 0))
                   (,imc (array-row-major-index ,mc ,i 0)))
              (declare (type ,val-type ,maik)
-                      (type simd-pack-double ,maiksse)
+                      (type (simd-pack double-float) ,maiksse)
                       (type fixnum ,imb ,imc))
              (do ((,j 0 (+ ,j (the fixnum (* +unroll+ 2)))))
                  ((>= ,j ,jend0) ,j)
                ,@(loop :repeat +unroll+
                     :with form =
-                    `((store2-sse-to-array
-                       (sb-kernel:%array-data-vector ,mc) ,imc
-                       (f2+ (load2-sse-from-array
-                             (sb-kernel:%array-data-vector ,mc) ,imc)
+                    `((store2-sse-to-array (sb-kernel:%array-data-vector ,mc) ,imc
+                       (f2+ (load2-sse-from-array (sb-kernel:%array-data-vector ,mc) ,imc)
                             (f2* ,maiksse
-                                 (load2-sse-from-array
-                                  (sb-kernel:%array-data-vector ,mb) ,imb))))
+                                 (load2-sse-from-array (sb-kernel:%array-data-vector ,mb) ,imb))))
                       (incf ,imb 2)
                       (incf ,imc 2))
                     :append form))
@@ -182,13 +209,10 @@
                   (incf ,imb)
                   (incf ,imc))
                  (t
-                  (store2-sse-to-array
-                   (sb-kernel:%array-data-vector ,mc) ,imc
-                   (f2+ (load2-sse-from-array
-                         (sb-kernel:%array-data-vector ,mc) ,imc)
+                  (store2-sse-to-array (sb-kernel:%array-data-vector ,mc) ,imc
+                   (f2+ (load2-sse-from-array (sb-kernel:%array-data-vector ,mc) ,imc)
                         (f2* ,maiksse
-                             (load2-sse-from-array
-                              (sb-kernel:%array-data-vector ,mb) ,imb))))
+                             (load2-sse-from-array (sb-kernel:%array-data-vector ,mb) ,imb))))
                   (incf ,imb 2)
                   (incf ,imc 2))))))))))
 
