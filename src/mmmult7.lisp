@@ -4,8 +4,7 @@
   (:export :dm*m :gemm1 :gemm3))
 (in-package :cl3a.mmmult7)
 
-;; (defun load2-sse-from-array (mat i)
-;;   (load2-sse-from-array mat i))
+
 (declaim (ftype (function ((simple-array double-float (*))
                            fixnum)
                           (simd-pack double-float))
@@ -19,8 +18,7 @@
     (declare (type double-float x1 x2))
     (sb-kernel:%make-simd-pack-double x1 x2)))
 
-;; (defun store2-sse-to-array (mat i simd)
-;;   (store2-sse-to-array mat i simd))
+
 (declaim (ftype (function ((simple-array double-float (*))
                            fixnum
                            (simd-pack double-float)))
@@ -82,8 +80,8 @@
              (declare (type ,val-type ,maik)
                       (type (simd-pack double-float) ,maiksse)
                       (type fixnum ,imb ,imc))
-             (do ((,j 0 (+ ,j (the fixnum (* +unroll+ 2)))))
-                 ((>= ,j ,jend0) ,j)
+             (do ((,j 0 (the fixnum (+ ,j (* +unroll+ 2)))))
+                 ((>= ,j ,jend0))
                ,@(loop :repeat +unroll+
                     :with form =
                     `((store2-sse-to-array (sb-kernel:%array-data-vector ,mc) ,imc

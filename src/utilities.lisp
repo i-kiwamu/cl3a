@@ -21,6 +21,7 @@
            :copy-matrix/double-float
            :copy-matrix/long-float
            :copy-matrix-transpose/double-float
+           :copy-matrix-transpose/long-float
            :let-mat-dotimes-cinterval2
            :let-mat-dotimes-rinterval2))
 (in-package :cl3a.utilities)
@@ -99,7 +100,7 @@
     ((i p n m &optional (unroll +unroll+)) (&body body1) (&body body2))
   "Loop for i from p to n with unrolling of +unroll+ without updating i"
   (with-gensyms (n0)
-    `(let ((,n0 (+ (min-factor (- ,n ,p) ,unroll ,m) ,p)))
+    `(let ((,n0 (+ (the fixnum (min-factor (the fixnum (- ,n ,p)) ,unroll ,m)) ,p)))
        (declare (type fixnum ,n0))
        (do ((,i ,p (the fixnum (+ ,i (* ,unroll ,m)))))
              ((>= ,i ,n0))
@@ -137,7 +138,6 @@
          (setf ,m (- ,n ,n0))
          (let ((,i ,iend0))
            ,@body)))))
-
 
 (defmacro dotimes-interval3 ((i s n) (m m-val) (&body body1) (&body body2))
   "loop for i from s to n with interval of m with different body"
@@ -266,6 +266,27 @@
            (declare (optimize (speed 3) (safety 0))
                     (type fixnum si nr sj j)
                     (type (simple-array double-float (* *))))
+           (copy-matrix-transpose-ker ma si nr sj j mb)))
+  (let* ((nrb (array-dimension mb 0))
+         (ncb (array-dimension mb 1))
+         (nr (min ni ncb))
+         (nc (min nj nrb)))
+    (declare (type fixnum nrb ncb nr nc))
+    (dotimes (j nc)
+      (copy ma si nr sj j mb)))))
+
+
+(declaim (ftype (function ((simple-array long-float (* *))
+                           fixnum fixnum fixnum fixnum
+                           (simple-array long-float (* *))))
+                copy-matrix-transpose/long-float))
+(defun copy-matrix-transpose/long-float (ma si ni sj nj mb)
+  (declare (type (simple-array long-float (* *)) ma mb)
+           (type fixnum si ni sj nj))
+  (flet ((copy (ma si nr sj j mb)
+           (declare (optimize (speed 3) (safety 0))
+                    (type fixnum si nr sj j)
+                    (type (simple-array long-float (* *))))
            (copy-matrix-transpose-ker ma si nr sj j mb)))
   (let* ((nrb (array-dimension mb 0))
          (ncb (array-dimension mb 1))

@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage cl3a.mmmult_Goto
-  (:use :cl :alexandria :cl3a.utilities :cl3a.mmmult7vop)
+  (:use :cl :alexandria :cl3a.utilities)
   (:export :gemm1 :gemm3 :dm*m))
 (in-package :cl3a.mmmult_Goto)
 
@@ -19,33 +19,18 @@
 
 
 (defmacro gebp-reg-ker (t2 Atd ia Bp ib cij)
-  (with-gensyms (p0 pp)
-    `(let ((,p0 (min-factor ,t2 +unroll+)))
-       (declare (type fixnum ,p0))
-       (do ((,pp 0 (+ ,pp +unroll+)))
-           ((>= ,pp ,p0))
-         ,@(loop :repeat +unroll+
-              :append `((incf ,cij
-                              (* (row-major-aref ,Atd ,ia)
-                                 (row-major-aref ,Bp ,ib)))
-                        (incf ,ia)
-                        (incf ,ib))))
-       (do ((,pp ,p0 (1+ ,pp)))
-           ((>= ,pp ,t2))
-         (incf ,cij (* (row-major-aref ,Atd ,ia)
-                       (row-major-aref ,Bp ,ib)))
+  (with-gensyms (pp)
+    `(progn
+       (dotimes-unroll2 (,pp 0 ,t2)
+         (incf ,cij
+               (* (row-major-aref ,Atd ,ia)
+                  (row-major-aref ,Bp ,ib)))
          (incf ,ia)
          (incf ,ib))
        ,cij)))
 
 
-(declaim (ftype (function (fixnum fixnum fixnum fixnum
-                           (simple-array double-float (* *))
-                           (simple-array double-float (* *))
-                           fixnum
-                           (simple-array double-float (* *))))
-                gebp-reg))
-(defun gebp-reg (mr t1 t2 t3 Atd Bp jr Caux)
+(defmacro gebp-reg (eltype mr t1 t2 t3 Atd Bp jr Caux)
   "register-scale program of GEBP: Caux += Atd * Bp[ib]"
   ;; Args
   ;;   mr: block size of row of A & C
@@ -56,48 +41,48 @@
   ;;   Bp: right input matrix B-packed
   ;;   jr: target calculation of column at B & C
   ;;   Caux: output sub-matrix
-  (declare (optimize (speed 3) (safety 0))
-           (type fixnum mr t1 t2 t3 jr)
-           (type (simple-array double-float (* *)) Atd Bp Caux))
-  (flet ((calc (t2 Atd ia Bp ib cij)
-           (declare (optimize (speed 3) (safety 0))
-                    (type fixnum t2 ia ib)
-                    (type (simple-array double-float (* *)) Atd Bp)
-                    (type double-float cij))
-           (gebp-reg-ker t2 Atd ia Bp ib cij)))
-    (declare (inline calc))
-    (dotimes-interval2 (ir 0 t1) (t4 mr)
-      (dotimes (i t4)
-        (dotimes (j t3)
-          (let ((cij (aref Caux (+ ir i) j))
-                (ia (array-row-major-index Atd (+ ir i) 0))
-                (ib (array-row-major-index Bp (+ jr j) 0)))
-            (declare (type double-float cij)
-                     (type fixnum ia ib))
-            (incf (aref Caux (+ ir i) j)
-                  (calc t2 Atd ia Bp ib cij))
-            ;; (dotimes-unroll2-interval (pp 0 t2 2)
-            ;;   ((incf cij
-            ;;          (simd-sum
-            ;;           (f2* (load2-sse-from-array
-            ;;                 (sb-kernel:%array-data-vector Atd) ia)
-            ;;                (load2-sse-from-array
-            ;;                 (sb-kernel:%array-data-vector Bp) ib))))
-            ;;    (incf ia 2)
-            ;;    (incf ib 2))
-            ;;   ((incf cij
-            ;;          (* (row-major-aref Atd ia)
-            ;;             (row-major-aref Bp ib)))))
-            ))))))
+  (with-gensyms (calc ir t4 i rmc j cij ia ib)
+    `(flet ((,calc (,t2 ,Atd ,ia ,Bp ,ib ,cij)
+              (declare (optimize (speed 3) (safety 0))
+                       (type fixnum ,t2 ,ia ,ib)
+                       (type (simple-array ,eltype (* *)) ,Atd ,Bp)
+                       (type ,eltype ,cij))
+              (gebp-reg-ker ,t2 ,Atd ,ia ,Bp ,ib ,cij)))
+       (dotimes-interval2 (,ir 0 ,t1) (,t4 ,mr)
+         (dotimes (,i ,t4)
+           (let ((,rmc (array-row-major-index ,Caux (+ ,ir ,i) 0)))
+             (declare (type fixnum ,rmc))
+             (dotimes (,j ,t3)
+               (let ((,cij (row-major-aref ,Caux ,rmc))
+                     (,ia (array-row-major-index ,Atd (+ ,ir ,i) 0))
+                     (,ib (array-row-major-index ,Bp (+ ,jr ,j) 0)))
+                 (declare (type ,eltype ,cij)
+                          (type fixnum ,ia ,ib))
+                 (incf (row-major-aref ,Caux ,rmc)
+                       (,calc ,t2 ,Atd ,ia ,Bp ,ib ,cij))
+                 (incf ,rmc)))))))))
+
+(macrolet
+    ((define-gebp-reg (eltype)
+       (let ((fname (symbolicate 'gebp-reg/ eltype)))
+         `(progn
+            (declaim (ftype (function
+                             (fixnum fixnum fixnum fixnum
+                              (simple-array ,eltype (* *))
+                              (simple-array ,eltype (* *))
+                              fixnum
+                              (simple-array ,eltype (* *))))
+                            ,fname))
+            (defun ,fname (mr t1 t2 t3 Atd Bp jr Caux)
+              (declare (optimize (speed 3) (safety 0))
+                       (type fixnum mr t1 t2 t3 jr)
+                       (type (simple-array ,eltype (* *)) Atd Bp Caux))
+              (gebp-reg ,eltype mr t1 t2 t3 Atd Bp jr Caux))))))
+  (define-gebp-reg double-float)
+  (define-gebp-reg long-float))
 
 
-(declaim (ftype (function (fixnum fixnum fixnum fixnum fixnum
-                           fixnum fixnum
-                           (simple-array double-float (* *))
-                           (simple-array double-float (* *))
-                           (simple-array double-float (* *))))
-                gepp-blk1))
-(defun gepp-blk1 (p mc t2 nr mr m n A Bp C)
+(defmacro gepp-blk1 (eltype p mc t2 nr mr m n A Bp C)
   "Blocked GEPP"
   ;; Args
   ;;   p: index
@@ -110,53 +95,86 @@
   ;;   A: left input matrix
   ;;   Bp: right input matrix of n*kc (transposed)
   ;;   C: output matrix
-  (declare (optimize (speed 3) (safety 0))
-           (type fixnum p mc t2 nr mr m n)
-           (type (simple-array double-float (* *)) A Bp C))
-  (dotimes-interval2 (ic 0 m) (t1 mc)
-     (let ((Atd (make-array (list t1 t2)
-                            :element-type 'double-float)))
-       (declare (type (simple-array double-float (* *)) Atd))
-       (copy-matrix/double-float A ic t1 p t2 Atd)
-       (dotimes-interval2 (jr 0 n) (t3 nr)
-         (let ((Caux (make-array (list t1 t3)
-                                 :element-type 'double-float)))
-           (declare (type (simple-array double-float (* *)) Caux))
-           (gebp-reg mr t1 t2 t3 Atd Bp jr Caux)
-           (dotimes (ii t1)
-             (let ((rmc (array-row-major-index C (+ ic ii) jr))
-                   (rmcaux (array-row-major-index Caux ii 0)))
-               (declare (type fixnum rmc rmcaux))
-               (dotimes (jj t3)
-                 (incf (row-major-aref C rmc)
-                       (row-major-aref Caux rmcaux))
-                 (incf rmc)
-                 (incf rmcaux)))))))))
+  (let ((copy-matrix-eltype (symbolicate 'copy-matrix/ eltype))
+        (gebp-reg-eltype (symbolicate 'gebp-reg/ eltype)))
+    (with-gensyms (ic t1 Atd jr t3 Caux ii rmc rmcaux jj)
+      `(dotimes-interval2 (,ic 0 ,m) (,t1 ,mc)
+         (let ((,Atd (make-array (list ,t1 ,t2)
+                                 :element-type ',eltype)))
+           (declare (type (simple-array ,eltype (* *)) ,Atd))
+           (,copy-matrix-eltype ,A ,ic ,t1 ,p ,t2 ,Atd)
+           (dotimes-interval2 (,jr 0 ,n) (,t3 ,nr)
+             (let ((,Caux (make-array (list ,t1 ,t3)
+                                      :element-type ',eltype)))
+               (declare (type (simple-array ,eltype (* *)) ,Caux))
+               (,gebp-reg-eltype ,mr ,t1 ,t2 ,t3 ,Atd ,Bp ,jr ,Caux)
+               (dotimes (,ii ,t1)
+                 (let ((,rmc (array-row-major-index ,C (+ ,ic ,ii) ,jr))
+                       (,rmcaux (array-row-major-index ,Caux ,ii 0)))
+                   (declare (type fixnum ,rmc ,rmcaux))
+                   (dotimes (,jj ,t3)
+                     (incf (row-major-aref ,C ,rmc)
+                           (row-major-aref ,Caux ,rmcaux))
+                     (incf ,rmc)
+                     (incf ,rmcaux)))))))))))
+
+(macrolet
+    ((define-gepp-blk1 (eltype)
+       (let ((fname (symbolicate 'gepp-blk1/ eltype)))
+         `(progn
+            (declaim (ftype (function
+                             (fixnum fixnum fixnum fixnum fixnum
+                              fixnum fixnum
+                              (simple-array ,eltype (* *))
+                              (simple-array ,eltype (* *))
+                              (simple-array ,eltype (* *))))
+                            ,fname))
+            (defun ,fname (p mc t2 nr mr m n A Bp C)
+              (declare (optimize (speed 3) (safety 0))
+                       (type fixnum p mc t2 nr mr m n)
+                       (type (simple-array ,eltype (* *)) A Bp C))
+              (gepp-blk1 ,eltype p mc t2 nr mr m n A Bp C))))))
+  (define-gepp-blk1 double-float)
+  (define-gepp-blk1 long-float))
 
 
-(declaim (ftype (function (fixnum fixnum fixnum fixnum
-                           (simple-array double-float (* *))
-                           (simple-array double-float (* *))
-                           (simple-array double-float (* *))))
-                gemm1))
-(defun gemm1 (mc kc nr mr A B C)
+(defmacro gemm1 (eltype mc kc nr mr A B C)
   "GEMM_VAR1"
-  (declare (optimize (speed 3) (safety 0))
-           (type fixnum mc kc nr mr)
-           (type (simple-array double-float (* *)) A B C))
-  (let* ((m (min (array-dimension A 0)
-                 (array-dimension C 0)))
-         (k (min (array-dimension A 1)
-                 (array-dimension B 0)))
-         (n (min (array-dimension B 1)
-                 (array-dimension C 1)))
-         (Bp (make-array (list n (min kc k))
-                         :element-type 'double-float)))
-    (declare (type fixnum m k n)
-             (type (simple-array double-float (* *)) Bp))
-    (dotimes-interval2 (p 0 k) (t2 kc)
-      (copy-matrix-transpose/double-float B p t2 0 n Bp)
-      (gepp-blk1 p mc t2 nr mr m n A Bp C))))
+  (let ((copy-tmatrix-eltype (symbolicate 'copy-matrix-transpose/ eltype))
+        (gepp-blk1-eltype (symbolicate 'gepp-blk1/ eltype)))
+    (with-gensyms (m k n Bp p t2)
+      `(let* ((,m (min (array-dimension ,A 0)
+                       (array-dimension ,C 0)))
+              (,k (min (array-dimension ,A 1)
+                       (array-dimension ,B 0)))
+              (,n (min (array-dimension ,B 1)
+                       (array-dimension ,C 1)))
+              (,Bp (make-array (list ,n (min ,kc ,k))
+                               :element-type ',eltype)))
+         (declare (type fixnum ,m ,k ,n)
+                  (type (simple-array ,eltype (* *)) ,Bp))
+         (dotimes-interval2 (,p 0 ,k) (,t2 ,kc)
+           (,copy-tmatrix-eltype ,B ,p ,t2 0 ,n ,Bp)
+           (,gepp-blk1-eltype ,p ,mc ,t2 ,nr ,mr ,m ,n ,A ,Bp ,C))))))
+
+(macrolet
+    ((define-gemm1 (eltype)
+       (let ((fname (symbolicate 'gemm1/ eltype)))
+         `(progn
+            (declaim (ftype (function
+                             (fixnum fixnum fixnum fixnum
+                              (simple-array ,eltype (* *))
+                              (simple-array ,eltype (* *))
+                              (simple-array ,eltype (* *))))
+                            ,fname))
+            (defun ,fname (mc kc nr mr A B C)
+              (declare (optimize (speed 3) (safety 0))
+                       (type fixnum mc kc nr mr)
+                       (type (simple-array ,eltype (* *)) A B C))
+              (gemm1 ,eltype mc kc nr mr A B C))))))
+  (define-gemm1 double-float)
+  (define-gemm1 long-float))
+
 
 
 (declaim (ftype (function (fixnum fixnum fixnum fixnum fixnum
@@ -259,7 +277,7 @@
 (defun dm*m (A B C)
   (declare (optimize (speed 3) (safety 0))
            (type (simple-array double-float (* *)) A B C))
-  (gemm1 128 1024 8 16 A B C))
+  (gemm1/double-float 128 1024 8 16 A B C))
   ;; (gemm1 1024 32 4 512 A B C))
   ;; (gemm1 256 512 8 2 A B C))
   ;; (gemm1 12 4 2 2 A B C))

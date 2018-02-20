@@ -16,11 +16,11 @@
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
-;; (defknown load2-sse-from-array ((simple-array double-float (*))
-;;                                  fixnum)
-;;     (sb-kernel:simd-pack double-float)
-;;     (movable flushable always-translatable)
-;;   :overwrite-fndb-silently t)
+(defknown load2-sse-from-array ((simple-array double-float (*))
+                                 fixnum)
+    (sb-kernel:simd-pack double-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
 
 ;; (defknown store2-sse-to-array ((simple-array double-float (*))
 ;;                                fixnum
@@ -85,8 +85,9 @@
            (inst movsd res x)
            (inst addsd res tmp)))))
 
-;; (define-vop (cl3a.mmmult7::load2-sse-from-array)
-;;   (:translate cl3a.mmmult7::load2-sse-from-array)
+
+;; (define-vop (cl3a.mmmult7vop::load2-sse-from-array)
+;;   (:translate cl3a.mmmult7vop::load2-sse-from-array)
 ;;   (:policy :fast-safe)
 ;;   (:args (object :scs (descriptor-reg) :target res)
 ;;          (index :scs (any-reg immediate)))
@@ -136,6 +137,9 @@
 
 (defun f2* (x y)
   (f2* x y))
+
+;; (defun load2-sse-from-array (mat i)
+;;   (load2-sse-from-array mat i))
 
 (defun simd-sum (x)
   (simd-sum x))
