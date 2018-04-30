@@ -3,6 +3,7 @@
 *.lisp-temp
 *.fas
 *.lib
+quicklisp/
 bench/*/bench-cl3a
 bench/*/bench-blas
 bench/*/bench-eigen
