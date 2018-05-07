@@ -54,7 +54,7 @@ Performance of dot product in 10^5 repeat by 3.4 GHz Intel Core i7
     <tr>
         <td>8192</td>
         <td>0.238</td><td>6.89</td>
-        <td>0.259/td><td>6.33</td>
+        <td>0.259</td><td>6.33</td>
         <td>0.246</td><td>6.67</td>
     </tr>
     <tr>
