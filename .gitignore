@@ -12,9 +12,5 @@ bench/*/bench-blas
 bench/*/bench-eigen
 bench/bechmarks.numbers
 *.dtps
-<<<<<<< HEAD
-bench/*/Instruments.trace
-=======
 bench/*/Instruments.tracequicklisp/
 quicklisp/
->>>>>>> develop
