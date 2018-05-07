@@ -1,8 +1,8 @@
 (in-package :cl-user)
-(defpackage cl3a.mmmult
+(defpackage cl3a.mmmult4
   (:use :cl :alexandria :cl3a.utilities)
   (:export :dm*m :lm*m))
-(in-package :cl3a.mmmult)
+(in-package :cl3a.mmmult4)
 
 
 (declaim (ftype (function (integer &key (:l1 boolean)) integer)
@@ -13,8 +13,8 @@
            (type boolean l1))
   (let* ((n-half (ifloor n 2))
          (cache-size (if l1
-                         (ifloor (* +L1-size+ +associativity+) 8)
-                         (ifloor (* +L2-size+ +associativity+) 8))))  ;; 1 word = 4 byte
+                         (ifloor +L1-size+ 8)
+                         (ifloor +L2-size+ 8))))  ;; 1 word = 4 byte
     (declare (type integer n-half cache-size))
     (loop :while t
        :with max-width :of-type integer = (min n cache-size)
@@ -32,25 +32,38 @@
        :do (setf max-width di0))))
 
 
-(defmacro m*m-ker (val-type si ni sk nk nra nv ncb ma mb mc)
+(defmacro m*m-ker (val-type sj nj sk nk nra nv ncb ma mb mc)
   "Multiply matrix and matrix (unrolling version)"
+  ;; Args
+  ;;   val-type: element type of array (double-float or long-float)
+  ;;   sj: block index for nc
+  ;;   nj: block size for nc
+  ;;   sk: block index for nv
+  ;;   nk: block size for nv
+  ;;   nra: number of row of ma
+  ;;   nv: number of cols of ma & number of rows of mb
+  ;;   ncb: number of cols of nc
+  ;;   ma: input matrix with nra*nv
+  ;;   mb: input matrix with nv*ncb
+  ;;   mc: output matrix with nra*ncb
   (with-gensyms (iend jend0 kend i j k maik imb imc maxj)
-    `(let* ((,iend (min ,nra (the fixnum (+ ,si ,ni))))
-            (,jend0 (min-factor ,ncb +unroll+))
+    `(let* ((,iend ,nra)
+            (,jend0 (min ,ncb
+                         (the fixnum (min-factor (the fixnum (+ ,sj ,nj)) +unroll+))))
             (,kend (min ,nv (the fixnum (+ ,sk ,nk))))
             (,maxj 0))
        (declare (type fixnum ,iend ,jend0 ,kend ,maxj))
-       (do ((,i ,si (1+ ,i)))
+       (do ((,i 0 (1+ ,i)))
            ((>= ,i ,iend))
          (do ((,k ,sk (1+ ,k)))
              ((>= ,k ,kend))
            (let ((,maik (aref ,ma ,i ,k))
-                 (,imb (array-row-major-index ,mb ,k 0))
-                 (,imc (array-row-major-index ,mc ,i 0)))
+                 (,imb (array-row-major-index ,mb ,k ,sj))
+                 (,imc (array-row-major-index ,mc ,i ,sj)))
              (declare (type ,val-type ,maik)
                       (type fixnum ,imb ,imc))
              (setf ,maxj
-                   (do ((,j 0 (+ ,j +unroll+)))
+                   (do ((,j ,sj (+ ,j +unroll+)))
                        ((>= ,j ,jend0) ,j)
                      ,@(loop :repeat +unroll+
                           :with form = `((incf (row-major-aref ,mc ,imc)
@@ -69,13 +82,18 @@
 
 
 (defmacro m*m (val-type ma mb mc)
-  (with-gensyms (calc nra nca nrb ncb nv nt m i k)
+  (with-gensyms (calc copy nra nca nrb ncb nv nt m j k mnv mncb mb-sub)
     `(flet ((,calc (si ni sk nk nra nv ncb ma mb mc)
               (declare (optimize (speed 3) (debug 0) (safety 0))
                        (type fixnum si ni sk nk nra nv ncb)
                        (type (simple-array ,val-type (* *)) ma mb mc))
-              (m*m-ker ,val-type si ni sk nk nra nv ncb ma mb mc)))
-       (declare (inline ,calc))
+              (m*m-ker ,val-type si ni sk nk nra nv ncb ma mb mc))
+            (,copy (ma si ni sj nj mb)
+              (declare (optimize (speed 3) (debug 0) (safety 0))
+                       (type (simple-array ,val-type (* *)) ma mb)
+                       (type fixnum si ni sj nj))
+              (copy-matrix ma si ni sj nj mb)))
+       (declare (inline ,calc ,copy))
        (let* ((,nra (array-dimension ,ma 0))
               (,nca (array-dimension ,ma 1))
               (,nrb (array-dimension ,mb 0))
@@ -87,9 +105,16 @@
               (,nt (min ,nra ,ncb))
               (,m (tile-size ,nt)))
          (declare (type fixnum ,nra ,nca ,nrb ,ncb ,nv ,nt ,m))
-         (dotimes-interval (,i ,m ,nra)
-           (dotimes-interval (,k ,m ,nv)
-             (,calc ,i ,m ,k ,m ,nra ,nv ,ncb ,ma ,mb ,mc)))))))
+         (dotimes-interval (,k ,m ,nv)
+           (dotimes-interval (,j ,m ,ncb)
+             (let* ((,mnv (min ,m ,nv))
+                    (,mncb (min ,m ,ncb))
+                    (,mb-sub (make-array (list ,mnv ,mncb)
+                                         :element-type ',val-type)))
+               (declare (type fixnum ,mnv ,mncb)
+                        (type (simple-array ,val-type (* *)) ,mb-sub))
+               (,copy ,mb ,j ,m ,k ,m ,mb-sub)
+               (,calc ,j ,m ,k ,m ,nra ,nv ,ncb ,ma ,mb-sub ,mc))))))))
 
 
 (declaim (ftype (function ((simple-array double-float (* *))

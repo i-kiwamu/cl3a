@@ -1,5 +1,8 @@
+.DS_Store
+*~
 *.FASL
 *.fasl
+*.dx64fsl
 *.lisp-temp
 *.fas
 *.lib
@@ -9,4 +12,9 @@ bench/*/bench-blas
 bench/*/bench-eigen
 bench/bechmarks.numbers
 *.dtps
+<<<<<<< HEAD
 bench/*/Instruments.trace
+=======
+bench/*/Instruments.tracequicklisp/
+quicklisp/
+>>>>>>> develop

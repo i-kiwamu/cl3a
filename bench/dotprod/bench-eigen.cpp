@@ -12,7 +12,8 @@ int bench(int n, int m) {
     std::uniform_real_distribution<> rand1(0.0, 1.0);
     VectorXd va(n);
     VectorXd vb(n);
-    double x;
+    // double x;
+    VectorXd x(m);
 
     for (int i = 0; i < n; ++i) {
         va(i) = rand1(mt);
@@ -21,7 +22,7 @@ int bench(int n, int m) {
 
     clock_t start = clock();
     for (int i = 0; i < m; ++i) {
-        x = va.dot(vb);
+        x(i) = va.dot(vb);
     }
     clock_t end = clock();
     std::cout << "Total time (" << (int)m << " repeat): "
