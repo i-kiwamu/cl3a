@@ -1,5 +1,8 @@
+.DS_Store
+*~
 *.FASL
 *.fasl
+*.dx64fsl
 *.lisp-temp
 *.fas
 *.lib
@@ -10,4 +13,3 @@ bench/bechmarks.numbers
 *.dtps
 bench/*/Instruments.tracequicklisp/
 quicklisp/*
-bench/Goto/bench-Goto
