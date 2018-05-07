@@ -1,2 +1,0 @@
-# project url size file-md5 content-sha1 prefix [system-file1..system-fileN]
-cl3a qlot://localhost/archive/cl3a/git-773938f38e97fde0f328507298d5d3fad52b1841/cl3a.tar.gz 104988 1555bdd307faa586ff12752d2834975e ef04945c2401e4ee6e249e4023ccfafb6c9cd7a5 cl3a cl3a-test.asd cl3a.asd

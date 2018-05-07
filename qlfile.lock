@@ -1,10 +1,11 @@
 ("quicklisp" .
  (:class qlot.source.ql:source-ql-all
   :initargs (:project-name "quicklisp" :%version :latest)
-  :version "2018-01-31"))
-("cl3a" .
- (:class qlot.source.git:source-git
-  :initargs (:project-name "cl3a" :remote-url "https://github.com/i-kiwamu/cl3a.git")
-  :version "git-773938f38e97fde0f328507298d5d3fad52b1841"
-  :remote-url "https://github.com/i-kiwamu/cl3a.git"
-  :ref "773938f38e97fde0f328507298d5d3fad52b1841"))
+  :version "2018-04-30"))
+("cl-simd" .
+ (:class qlot.source.github:source-github
+  :initargs (:project-name "cl-simd" :repos "i-kiwamu/cl-simd" :ref nil :branch nil :tag nil)
+  :version "github-ef3b034b63f338a9df79e2a734d55c447457046e"
+  :repos "i-kiwamu/cl-simd"
+  :url "https://github.com/i-kiwamu/cl-simd/archive/ef3b034b63f338a9df79e2a734d55c447457046e.tar.gz"
+  :ref "ef3b034b63f338a9df79e2a734d55c447457046e"))

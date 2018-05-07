@@ -1,5 +1,0 @@
-name: cl3a
-version: git-773938f38e97fde0f328507298d5d3fad52b1841
-distinfo-subscription-url: qlot://localhost/cl3a.txt
-release-index-url: qlot://localhost/cl3a/git-773938f38e97fde0f328507298d5d3fad52b1841/releases.txt
-system-index-url: qlot://localhost/cl3a/git-773938f38e97fde0f328507298d5d3fad52b1841/systems.txt

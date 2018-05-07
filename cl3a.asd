@@ -16,8 +16,9 @@
                                  "mvmult" "mmmult_Goto" "transpose"))
                    (:file "transpose")
                    (:file "utilities")
+                   (:file "dotprod_vop")
                    (:file "dotprod"
-                          :depends-on ("utilities"))
+                          :depends-on ("utilities" "dotprod_vop"))
                    (:file "norm"
                           :depends-on ("utilities" "dotprod"))
                    (:file "add_vector"

@@ -2,11 +2,11 @@
 (defpackage :cl3a
   (:use :cl :cl3a.dotprod :cl3a.norm :cl3a.add-vector :cl3a.rotate
         :cl3a.mvmult :cl3a.mmmult_Goto :cl3a.transpose)
-  (:export :dv*v :lv*v
-           :dnorm :lnorm
-           :dv+v :lv+v
-           :drotate :lrotate
-           :dm*v :lm*v
+  (:export :sv*v :dv*v
+           :dnorm
+           :dv+v
+           :drotate
+           :dm*v
            :dm*m :gemm1 :gemm3
-           :dtpose :ltpose))
+           :dtpose))
 (in-package :cl3a)

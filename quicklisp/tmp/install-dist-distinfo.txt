@@ -1,7 +1,5 @@
-name: quicklisp
-version: 2018-01-31
-system-index-url: http://beta.quicklisp.org/dist/quicklisp/2018-01-31/systems.txt
-release-index-url: http://beta.quicklisp.org/dist/quicklisp/2018-01-31/releases.txt
-archive-base-url: http://beta.quicklisp.org/
-canonical-distinfo-url: http://beta.quicklisp.org/dist/quicklisp/2018-01-31/distinfo.txt
-distinfo-subscription-url: http://beta.quicklisp.org/dist/quicklisp.txt
+name: cl-simd
+version: github-8a1c6561b69d39f84e966e8868ad69fa936703d5
+distinfo-subscription-url: qlot://localhost/cl-simd.txt
+release-index-url: qlot://localhost/cl-simd/github-8a1c6561b69d39f84e966e8868ad69fa936703d5/releases.txt
+system-index-url: qlot://localhost/cl-simd/github-8a1c6561b69d39f84e966e8868ad69fa936703d5/systems.txt
