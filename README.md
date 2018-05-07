@@ -8,18 +8,18 @@ Common Lisp Library of Linear Algebra
 ## What is this?
 This library provides suites of calculatins for linear algebra like [OpenBLAS](https://github.com/xianyi/OpenBLAS) or [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page). The aims of this library are
 
-* to provide fast library of linear algebra for Lispers
-* to explore the capability of linear algebra calculations written in **pure Common Lisp**
+* to provide sufficiently fast library of linear algebra for Lispers
+* to explore the capability of linear algebra calculations **not** to use foreign function interface (FFI)
 
 ## Benchmark
-Performance of dot product in 10^5 repeat by 2.8 GHz Intel Core i7
+Performance of dot product in 10^5 repeat by 3.4 GHz Intel Core i7
 
 <table>
     <tr>
         <th>N</th>
-        <th colspan="2">cl3a (SBCL 1.3.3)</th>
-        <th colspan="2">OpenBLAS 0.2.15 (gfortran 5.3.0)</th>
-        <th colspan="2">Eigen 3.2.8 (clang++ 5.3.0)</th>
+        <th colspan="2">cl3a (SBCL 1.4.3)</th>
+        <th colspan="2">OpenBLAS 0.2.20 (gfortran 8.1.0)</th>
+        <th colspan="2">Eigen 3.3.4 (clang++ 9.1.0)</th>
     </tr>
     <tr>
         <td></td>
@@ -29,56 +29,56 @@ Performance of dot product in 10^5 repeat by 2.8 GHz Intel Core i7
     </tr>
     <tr>
         <td>512</td>
-        <td>0.033</td><td>3.100</td>
-        <td>0.400</td><td>0.256</td>
-        <td>0.014</td><td>7.154</td>
+        <td>0.0136</td><td>7.55</td>
+        <td>0.118</td><td>0.87</td>
+        <td>0.0139</td><td>7.36</td>
     </tr>
     <tr>
         <td>1024</td>
-        <td>0.056</td><td>3.655</td>
-        <td>0.386</td><td>0.530</td>
-        <td>0.028</td><td>7.206</td>
+        <td>0.023</td><td>8.75</td>
+        <td>0.121</td><td>1.69</td>
+        <td>0.029</td><td>7.15</td>
     </tr>
     <tr>
         <td>2048</td>
-        <td>0.106</td><td>3.863</td>
-        <td>0.413</td><td>0.992</td>
-        <td>0.056</td><td>7.315</td>
+        <td>0.044</td><td>9.32</td>
+        <td>0.130</td><td>1.69</td>
+        <td>0.029</td><td>7.15</td>
     </tr>
     <tr>
         <td>4096</td>
-        <td>0.212</td><td>3.864</td>
-        <td>0.539</td><td>1.520</td>
-        <td>0.146</td><td>5.614</td>
+        <td>0.121</td><td>6.79</td>
+        <td>0.183</td><td>4.48</td>
+        <td>0.124</td><td>6.62</td>
     </tr>
     <tr>
         <td>8192</td>
-        <td>0.415</td><td>3.948</td>
-        <td>0.718</td><td>2.282</td>
-        <td>0.295</td><td>5.558</td>
+        <td>0.238</td><td>6.89</td>
+        <td>0.259/td><td>6.33</td>
+        <td>0.246</td><td>6.67</td>
     </tr>
     <tr>
         <td>16384</td>
-        <td>0.876</td><td>3.741</td>
-        <td>1.165</td><td>2.813</td>
-        <td>0.573</td><td>5.716</td>
+        <td>0.498</td><td>6.58</td>
+        <td>0.455</td><td>7.20</td>
+        <td>0.496</td><td>6.60</td>
     </tr>
     <tr>
         <td>32768</td>
-        <td>2.023</td><td>3.239</td>
-        <td>2.058</td><td>3.184</td>
-        <td>1.617</td><td>4.054</td>
+        <td>1.095</td><td>5.99</td>
+        <td>0.950</td><td>6.90</td>
+        <td>1.101</td><td>5.95</td>
     </tr>
     <tr>
         <td>65536</td>
-        <td>4.059</td><td>3.229</td>
-        <td>3.749</td><td>3.496</td>
-        <td>3.275</td><td>4.002</td>
+        <td>2.185</td><td>6.00</td>
+        <td>1.808</td><td>7.25</td>
+        <td>2.239</td><td>5.85</td>
     </tr>
     <tr>
         <td>131072</td>
-        <td>8.194</td><td>3.199</td>
-        <td>7.109</td><td>3.687</td>
-        <td>6.557</td><td>3.998</td>
+        <td>4.407</td><td>5.95</td>
+        <td>3.448</td><td>7.60</td>
+        <td>4.433</td><td>5.91</td>
     </tr>
 </table>
