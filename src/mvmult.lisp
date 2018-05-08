@@ -1,7 +1,8 @@
 (in-package :cl-user)
 (defpackage cl3a.mvmult
-  (:use :cl :alexandria :cl3a.utilities)
-  (:export :dm*v :lm*v))
+  (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities)
+  ;; (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities :cl3a.dotprod_vop :cl3a.mvmult_vop)
+  (:export :sm*v :dm*v))
 (in-package :cl3a.mvmult)
 
 
@@ -81,13 +82,13 @@
   (m*v double-float ma vb vc))
 
 
-(declaim (ftype (function ((simple-array long-float (* *))
-                           (simple-array long-float (*))
-                           (simple-array long-float (*))))
-                lm*v))
-(defun lm*v (ma vb vc)
-  "Multiply matrix and vector of long-float"
-  (declare (optimize (speed 3))
-           (type (simple-array long-float (* *)) ma)
-           (type (simple-array long-float (*)) vb vc))
-  (m*v long-float ma vb vc))
+(declaim (ftype (function ((simple-array single-float (* *))
+                           (simple-array single-float (*))
+                           (simple-array single-float (*))))
+                sm*v))
+;; (defun sm*v (ma vb vc)
+;;   "Multiply matrix and vector of long-float"
+;;   (declare (optimize (speed 3))
+;;            (type (simple-array long-float (* *)) ma)
+;;            (type (simple-array long-float (*)) vb vc))
+;;   (m*v long-float ma vb vc))
