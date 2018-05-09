@@ -25,4 +25,4 @@
                    ;; (:file "mmmult7_vop")
                    (:file "mmmult_Goto"
                           :depends-on ("utilities")))))
-    :in-order-to ((test-op (test-op "cl3a/test"))))
+    :in-order-to ((test-op (load-op "cl3a-test"))))

@@ -1,4 +1,4 @@
-(defsystem "cl3a/test"
+(defsystem "cl3a-test"
     :description "test for cl3a"
     :depends-on (:cl3a)
     :defsystem-depends-on (:prove-asdf)
