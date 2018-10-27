@@ -7,26 +7,26 @@
 
 
 (defknown aref-ps ((simple-array single-float (*))
-                   (unsigned-byte 64))
+                   fixnum)
     (sb-kernel:simd-pack single-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown aref-pd ((simple-array double-float (*))
-                   (unsigned-byte 64))
+                   fixnum)
     (sb-kernel:simd-pack double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown aset-ps ((simple-array single-float (*))
-                   (unsigned-byte 64)
+                   fixnum
                    (sb-kernel:simd-pack single-float))
     (sb-kernel:simd-pack single-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown aset-pd ((simple-array double-float (*))
-                   (unsigned-byte 64)
+                   fixnum
                    (sb-kernel:simd-pack double-float))
     (sb-kernel:simd-pack double-float)
     (movable flushable always-translatable)
@@ -58,14 +58,24 @@
 
 (defknown dpi2-ps ((simple-array single-float (*))
                    (simple-array single-float (*))
-                   (unsigned-byte 64))
+                   fixnum)
     (sb-kernel:simd-pack single-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown dpi4-pd ((simple-array double-float (*))
                    (simple-array double-float (*))
-                   (unsigned-byte 64))
+                   fixnum)
+    (sb-kernel:simd-pack double-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown setzero-ps ()
+    (sb-kernel:simd-pack single-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown setzero-pd ()
     (sb-kernel:simd-pack double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
@@ -77,8 +87,8 @@
   (:translate cl3a.dotprod_vop::aref-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (unsigned-reg)))
-  (:arg-types simple-array-single-float unsigned-num)
+         (i :scs (signed-reg)))
+  (:arg-types simple-array-single-float tagged-num)
   (:results (r :scs (single-sse-reg)))
   (:result-types simd-pack-single)
   (:generator
@@ -90,8 +100,8 @@
   (:translate cl3a.dotprod_vop::aref-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (unsigned-reg)))
-  (:arg-types simple-array-double-float unsigned-num)
+         (i :scs (signed-reg)))
+  (:arg-types simple-array-double-float tagged-num)
   (:results (r :scs (double-sse-reg)))
   (:result-types simd-pack-double)
   (:generator
@@ -104,9 +114,9 @@
   (:translate cl3a.dotprod_vop::aset-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (unsigned-reg))
+         (i :scs (signed-reg))
          (src :scs (single-sse-reg)))
-  (:arg-types simple-array-single-float unsigned-num simd-pack-single)
+  (:arg-types simple-array-single-float tagged-num simd-pack-single)
   (:results (r :scs (single-sse-reg)))
   (:result-types simd-pack-single)
   (:generator
@@ -121,18 +131,19 @@
   (:translate cl3a.dotprod_vop::aset-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (unsigned-reg))
-         (src :scs (double-sse-reg)))
-  (:arg-types simple-array-double-float unsigned-num simd-pack-double)
-  (:results (r :scs (double-sse-reg)))
+         (i :scs (signed-reg))
+         (src :scs (double-sse-reg) :target r))
+  (:arg-types simple-array-double-float tagged-num simd-pack-double)
+  (:results (r :scs (double-sse-reg) :from (:argument 3)))
   (:result-types simd-pack-double)
   (:generator
    7
+   (when (not (location= r src))
+     (move r src))
    (inst movupd
          (make-ea-for-float-ref
           x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         src)
-   (move r src)))
+         r)))
 
 (define-vop (cl3a.dotprod_vop::f4*-ps)
   (:translate cl3a.dotprod_vop::f4*-ps)
@@ -189,9 +200,9 @@
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
-         (i :scs (unsigned-reg)))
+         (i :scs (signed-reg)))
   (:arg-types simple-array-single-float simple-array-single-float
-              unsigned-num)
+              tagged-num)
   (:temporary (:sc single-sse-reg :from (:argument 0)) xmm0)
   (:temporary (:sc single-sse-reg :from (:argument 1)) xmm1)
   (:results (xmm2 :scs (single-sse-reg) :from (:argument 1)))
@@ -215,9 +226,9 @@
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
-         (i :scs (unsigned-reg)))
+         (i :scs (signed-reg)))
   (:arg-types simple-array-double-float simple-array-double-float
-              unsigned-num)
+              tagged-num)
   (:temporary (:sc double-sse-reg :from (:argument 0)) xmm0)
   (:temporary (:sc double-sse-reg :from (:argument 1)) xmm1)
   (:results (xmm2 :scs (double-sse-reg) :from (:argument 1)))
@@ -256,6 +267,24 @@
    (inst mulpd xmm2 xmm0)
    (inst addpd xmm2 xmm1)))
 
+(define-vop (cl3a.dotprod_vop::setzero-ps)
+  (:translate cl3a.dotprod_vop::setzero-ps)
+  (:policy :fast-safe)
+  (:results (r :scs (single-sse-reg)))
+  (:result-types simd-pack-single)
+  (:generator
+   5
+   (inst xorps r r)))
+
+(define-vop (cl3a.dotprod_vop::setzero-pd)
+  (:translate cl3a.dotprod_vop::setzero-pd)
+  (:policy :fast-safe)
+  (:results (r :scs (double-sse-reg)))
+  (:result-types simd-pack-double)
+  (:generator
+   5
+   (inst xorpd r r)))
+
 
 (in-package :cl3a.dotprod_vop)
 
@@ -270,6 +299,12 @@
 
 (defun aset-pd (x i src)
   (aset-pd x i src))
+
+(defsetf aref-ps (x i) (val)
+  `(aset-ps ,x ,i ,val))
+
+(defsetf aref-pd (x i) (val)
+  `(aset-pd ,x ,i ,val))
 
 (defun f4*-ps (x y)
   (f4*-ps x y))
@@ -290,7 +325,7 @@
   (dpi4-pd x y i))
 
 (defun setzero-ps ()
-  (sb-kernel::%make-simd-pack-single 0s0 0s0 0s0 0s0))
+  (setzero-ps))
 
 (defun setzero-pd ()
-  (sb-kernel::%make-simd-pack-double 0d0 0d0))
+  (setzero-pd))

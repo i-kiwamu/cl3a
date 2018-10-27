@@ -20,8 +20,9 @@
                           :depends-on ("utilities"))
                    (:file "rotate"
                           :depends-on ("utilities"))
+                   (:file "mvmult_vop")
                    (:file "mvmult"
-                          :depends-on ("utilities"))
+                          :depends-on ("utilities" "mvmult_vop"))
                    ;; (:file "mmmult7_vop")
                    (:file "mmmult_Goto"
                           :depends-on ("utilities")))))
