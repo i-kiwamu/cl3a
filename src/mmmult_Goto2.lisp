@@ -1,5 +1,5 @@
 (in-package :cl-user)
-(defpackage cl3a.mmmult_Goto
+(defpackage cl3a.mmmult_Goto2
   (:use :cl :alexandria :cl3a.utilities :cl3a.mmmult_Goto2_vop)
   (:export :dm*m))
 (in-package :cl3a.mmmult_Goto2)
