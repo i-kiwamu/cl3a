@@ -1,202 +1,42 @@
 (in-package :cl-user)
 (defpackage cl3a.dotprod_vop
   (:use :cl :sb-ext :sb-c :sb-vm)
-  (:export :aref-ps :aref-pd :aset-ps :aset-pd :f4*-ps :f2*-pd :f4+-ps :f2+-pd
-           :dpi2-ps :dpi4-pd :setzero-ps :setzero-pd))
+  (:export :dpi8-ps :dpi8-avx2-ps :dpi8-pd :dpi8-avx2-pd))
 (in-package :cl3a.dotprod_vop)
 
 
-(defknown aref-ps ((simple-array single-float (*))
-                   fixnum)
-    (sb-kernel:simd-pack single-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown aref-pd ((simple-array double-float (*))
-                   fixnum)
-    (sb-kernel:simd-pack double-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown aset-ps ((simple-array single-float (*))
-                   fixnum
-                   (sb-kernel:simd-pack single-float))
-    (sb-kernel:simd-pack single-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown aset-pd ((simple-array double-float (*))
-                   fixnum
-                   (sb-kernel:simd-pack double-float))
-    (sb-kernel:simd-pack double-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown f4*-ps ((sb-kernel:simd-pack single-float)
-                  (sb-kernel:simd-pack single-float))
-    (sb-kernel:simd-pack single-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown f2*-pd ((sb-kernel:simd-pack double-float)
-                  (sb-kernel:simd-pack double-float))
-    (sb-kernel:simd-pack double-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown f4+-ps ((sb-kernel:simd-pack single-float)
-                  (sb-kernel:simd-pack single-float))
-    (sb-kernel:simd-pack single-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown f2+-pd ((sb-kernel:simd-pack double-float)
-                  (sb-kernel:simd-pack double-float))
-    (sb-kernel:simd-pack double-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
-(defknown dpi2-ps ((simple-array single-float (*))
+(defknown dpi8-ps ((simple-array single-float (*))
                    (simple-array single-float (*))
                    fixnum)
     (sb-kernel:simd-pack single-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
-(defknown dpi4-pd ((simple-array double-float (*))
+(defknown dpi8-avx2-ps ((simple-array single-float (*))
+                        (simple-array single-float (*))
+                        fixnum)
+    (sb-ext:simd-pack-256 single-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown dpi8-pd ((simple-array double-float (*))
                    (simple-array double-float (*))
                    fixnum)
     (sb-kernel:simd-pack double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
-(defknown setzero-ps ()
-    (sb-kernel:simd-pack single-float)
+(defknown dpi8-avx2-pd ((simple-array double-float (*))
+                        (simple-array double-float (*))
+                        fixnum)
+    (sb-ext:simd-pack-256 double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
-
-(defknown setzero-pd ()
-    (sb-kernel:simd-pack double-float)
-    (movable flushable always-translatable)
-  :overwrite-fndb-silently t)
-
 
 (in-package :sb-vm)
 
-(define-vop (cl3a.dotprod_vop::aref-ps)
-  (:translate cl3a.dotprod_vop::aref-ps)
-  (:policy :fast-safe)
-  (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg)))
-  (:arg-types simple-array-single-float tagged-num)
-  (:results (r :scs (single-sse-reg)))
-  (:result-types simd-pack-single)
-  (:generator
-   5
-   (inst movups r (make-ea-for-float-ref
-                   x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits))))))
-
-(define-vop (cl3a.dotprod_vop::aref-pd)
-  (:translate cl3a.dotprod_vop::aref-pd)
-  (:policy :fast-safe)
-  (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg)))
-  (:arg-types simple-array-double-float tagged-num)
-  (:results (r :scs (double-sse-reg)))
-  (:result-types simd-pack-double)
-  (:generator
-   7
-   (inst movupd r
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))))
-
-(define-vop (cl3a.dotprod_vop::aset-ps)
-  (:translate cl3a.dotprod_vop::aset-ps)
-  (:policy :fast-safe)
-  (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg))
-         (src :scs (single-sse-reg)))
-  (:arg-types simple-array-single-float tagged-num simd-pack-single)
-  (:results (r :scs (single-sse-reg)))
-  (:result-types simd-pack-single)
-  (:generator
-   5
-   (inst movups
-         (make-ea-for-float-ref
-          x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))
-         src)
-   (move r src)))
-
-(define-vop (cl3a.dotprod_vop::aset-pd)
-  (:translate cl3a.dotprod_vop::aset-pd)
-  (:policy :fast-safe)
-  (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg))
-         (src :scs (double-sse-reg) :target r))
-  (:arg-types simple-array-double-float tagged-num simd-pack-double)
-  (:results (r :scs (double-sse-reg) :from (:argument 3)))
-  (:result-types simd-pack-double)
-  (:generator
-   7
-   (when (not (location= r src))
-     (move r src))
-   (inst movupd
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         r)))
-
-(define-vop (cl3a.dotprod_vop::f4*-ps)
-  (:translate cl3a.dotprod_vop::f4*-ps)
-  (:policy :fast-safe)
-  (:args (x :scs (single-sse-reg))
-         (y :scs (single-sse-reg)))
-  (:arg-types simd-pack-single simd-pack-single)
-  (:results (dst :scs (single-sse-reg) :from (:argument 0)))
-  (:result-types simd-pack-single)
-  (:generator 4
-              (move dst x)
-              (inst mulps dst y)))
-
-(define-vop (cl3a.dotprod_vop::f2*-pd)
-  (:translate cl3a.dotprod_vop::f2*-pd)
-  (:policy :fast-safe)
-  (:args (x :scs (double-sse-reg))
-         (y :scs (double-sse-reg)))
-  (:arg-types simd-pack-double simd-pack-double)
-  (:results (dst :scs (double-sse-reg) :from (:argument 0)))
-  (:result-types simd-pack-double)
-  (:generator
-   4
-   (move dst x)
-   (inst mulpd dst y)))
-
-(define-vop (cl3a.dotprod_vop::f4+-ps)
-  (:translate cl3a.dotprod_vop::f4+-ps)
-  (:policy :fast-safe)
-  (:args (x :scs (single-sse-reg))
-         (y :scs (single-sse-reg)))
-  (:arg-types simd-pack-single simd-pack-single)
-  (:results (dst :scs (single-sse-reg) :from (:argument 0)))
-  (:result-types simd-pack-single)
-  (:generator 4
-              (move dst x)
-              (inst addps dst y)))
-
-(define-vop (cl3a.dotprod_vop::f2+-pd)
-  (:translate cl3a.dotprod_vop::f2+-pd)
-  (:policy :fast-safe)
-  (:args (x :scs (double-sse-reg))
-         (y :scs (double-sse-reg)))
-  (:arg-types simd-pack-double simd-pack-double)
-  (:results (dst :scs (double-sse-reg) :from (:argument 0)))
-  (:result-types simd-pack-double)
-  (:generator
-   4
-   (move dst x)
-   (inst addpd dst y)))
-
-(define-vop (cl3a.dotprod_vop::dpi2-ps)
-  (:translate cl3a.dotprod_vop::dpi2-ps)
+(define-vop (cl3a.dotprod_vop::dpi8-ps)
+  (:translate cl3a.dotprod_vop::dpi8-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
@@ -221,8 +61,29 @@
    (inst mulps xmm2 xmm0)
    (inst addps xmm2 xmm1)))
 
-(define-vop (cl3a.dotprod_vop::dpi4-pd)
-  (:translate cl3a.dotprod_vop::dpi4-pd)
+(define-vop (cl3a.dotprod_vop::dpi8-avx2-ps)
+  (:translate cl3a.dotprod_vop::dpi8-avx2-ps)
+  (:policy :fast-safe)
+  (:args (x :scs (descriptor-reg))
+         (y :scs (descriptor-reg))
+         (i :scs (signed-reg)))
+  (:arg-types simple-array-single-float simple-array-single-float
+              tagged-num)
+  (:temporary (:sc single-avx2-reg :from (:argument 0)) ymm0)
+  (:temporary (:sc single-avx2-reg :from (:argument 1)) ymm1)
+  (:results (ymm2 :scs (single-avx2-reg) :from (:argument 1)))
+  (:result-types simd-pack-256-single)
+  (:generator
+   25
+   (inst vxorps ymm2 ymm2 ymm2)
+   (inst vmovups ymm0 (make-ea-for-float-ref x i 0 4
+                                             :scale (ash 8 (- n-fixnum-tag-bits))))
+   (inst vmovups ymm1 (make-ea-for-float-ref y i 0 4
+                                             :scale (ash 8 (- n-fixnum-tag-bits))))
+   (inst vfmadd231ps ymm2 ymm0 ymm1)))
+
+(define-vop (cl3a.dotprod_vop::dpi8-pd)
+  (:translate cl3a.dotprod_vop::dpi8-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
@@ -267,65 +128,46 @@
    (inst mulpd xmm2 xmm0)
    (inst addpd xmm2 xmm1)))
 
-(define-vop (cl3a.dotprod_vop::setzero-ps)
-  (:translate cl3a.dotprod_vop::setzero-ps)
+(define-vop (cl3a.dotprod_vop::dpi8-avx2-pd)
+  (:translate cl3a.dotprod_vop::dpi8-avx2-pd)
   (:policy :fast-safe)
-  (:results (r :scs (single-sse-reg)))
-  (:result-types simd-pack-single)
+  (:args (x :scs (descriptor-reg))
+         (y :scs (descriptor-reg))
+         (i :scs (signed-reg)))
+  (:arg-types simple-array-double-float simple-array-double-float
+              tagged-num)
+  (:temporary (:sc double-avx2-reg :from (:argument 0)) ymm0)
+  (:temporary (:sc double-avx2-reg :from (:argument 1)) ymm1)
+  (:results (ymm2 :scs (double-avx2-reg) :from (:argument 1)))
+  (:result-types simd-pack-256-double)
   (:generator
-   5
-   (inst xorps r r)))
-
-(define-vop (cl3a.dotprod_vop::setzero-pd)
-  (:translate cl3a.dotprod_vop::setzero-pd)
-  (:policy :fast-safe)
-  (:results (r :scs (double-sse-reg)))
-  (:result-types simd-pack-double)
-  (:generator
-   5
-   (inst xorpd r r)))
-
+   25
+   (inst vxorpd ymm2 ymm2 ymm2)
+   (inst vmovupd ymm0
+         (make-ea-for-float-ref
+          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd ymm1
+         (make-ea-for-float-ref
+          y i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vfmadd231pd ymm2 ymm0 ymm1)
+   (inst vmovupd ymm0
+         (make-ea-for-float-ref
+          x i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd ymm1
+         (make-ea-for-float-ref
+          y i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vfmadd231pd ymm2 ymm0 ymm1)))
 
 (in-package :cl3a.dotprod_vop)
 
-(defun aref-ps (x i)
-  (aref-ps x i))
+(defun dpi8-ps (x y i)
+  (dpi8-ps x y i))
 
-(defun aref-pd (x i)
-  (aref-pd x i))
+(defun dpi8-avx2-ps (x y i)
+  (dpi8-avx2-ps x y i))
 
-(defun aset-ps (x i src)
-  (aset-ps x i src))
+(defun dpi8-pd (x y i)
+  (dpi8-pd x y i))
 
-(defun aset-pd (x i src)
-  (aset-pd x i src))
-
-(defsetf aref-ps (x i) (val)
-  `(aset-ps ,x ,i ,val))
-
-(defsetf aref-pd (x i) (val)
-  `(aset-pd ,x ,i ,val))
-
-(defun f4*-ps (x y)
-  (f4*-ps x y))
-
-(defun f2*-pd (x y)
-  (f2*-pd x y))
-
-(defun f4+-ps (x y)
-  (f4+-ps x y))
-
-(defun f2+-pd (x y)
-  (f2+-pd x y))
-
-(defun dpi2-ps (x y i)
-  (dpi2-ps x y i))
-
-(defun dpi4-pd (x y i)
-  (dpi4-pd x y i))
-
-(defun setzero-ps ()
-  (setzero-ps))
-
-(defun setzero-pd ()
-  (setzero-pd))
+(defun dpi8-avx2-pd (x y i)
+  (dpi8-avx2-pd x y i))

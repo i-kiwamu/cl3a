@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage cl3a.mvmult
-  (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities :cl3a.dotprod_vop :cl3a.mvmult_vop)
+  (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities :cl3a.utilities_vop :cl3a.mvmult_vop)
   (:export :sm*v :dm*v))
 (in-package :cl3a.mvmult)
 
@@ -25,8 +25,8 @@
       (let ((idx (array-row-major-index matA i 0)))
         (declare (type fixnum idx))
         (sb-sys:%primitive
-         aset-pd vc i
-                 (f2+-pd (mvi2x4-pd k k0 idx (sb-kernel:%array-data-vector matA) vb (aref-pd vc i))
+         aset2-pd vc i
+                 (f2+-pd (mvi2x4-pd k k0 idx (sb-kernel:%array-data-vector matA) vb (aref2-pd vc i))
                          (loop :for p :of-type fixnum :from k0 :below k
                                :sum (* (aref matA i p) (aref vb p))
                                  :into c0 :of-type double-float
