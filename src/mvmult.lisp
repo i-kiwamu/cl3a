@@ -17,23 +17,29 @@
   (let* ((m (array-dimension matA 0))
          (k (array-dimension matA 1))
          (m0 (min-factor m 2))
-         (k0 (min-factor k 4)))
+         ;; (k0 (min-factor k 4)))
+         (k0 (min-factor k 8)))
     (declare (type fixnum m k m0 k0))
     (do ((i 0 (+ i 2)))
         ((>= i m0))
       (declare (type fixnum i))
       (let ((idx (array-row-major-index matA i 0)))
         (declare (type fixnum idx))
-        (sb-sys:%primitive
-         aset2-pd vc i
-                 (f2+-pd (mvi2x4-pd k k0 idx (sb-kernel:%array-data-vector matA) vb (aref2-pd vc i))
-                         (loop :for p :of-type fixnum :from k0 :below k
-                               :sum (* (aref matA i p) (aref vb p))
-                                 :into c0 :of-type double-float
-                               :sum (* (aref matA (1+ i) p) (aref vb p))
-                                 :into c1 :of-type double-float
-                               :finally
-                                  (return (sb-kernel:%make-simd-pack-double c0 c1)))))))
+        (multiple-value-bind (r0 r1 r2 r3)
+            (%simd-pack-256-doubles
+             (mvi2x8-pd k k0 idx (sb-kernel:%array-data-vector matA) vb))
+          (incf (aref vc i)
+                (+ r0 r2
+                   (loop :for p :of-type fixnum :from k0 :below k
+                         :sum (* (aref matA i p) (aref vb p))
+                           :into c :of-type double-float
+                         :finally (return c))))
+          (incf (aref vc (1+ i))
+                (+ r1 r3
+                   (loop :for p :of-type fixnum :from k0 :below k
+                         :sum (* (aref matA (1+ i) p) (aref vb p))
+                           :into c :of-type double-float
+                         :finally (return c)))))))
     (do ((i m0 (1+ i)))
         ((>= i m))
       (declare (type fixnum i))
