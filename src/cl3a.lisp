@@ -6,7 +6,7 @@
            :dnorm
            :dv+v
            :drotate
-           :dm*v
+           :sm*v :dm*v
            :dm*m :gemm1 :gemm3
            :dtpose))
 (in-package :cl3a)

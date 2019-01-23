@@ -1,11 +1,6 @@
-(in-package :cl-user)
-(defpackage cl3a-asd
-  (:use :cl :asdf))
-(in-package :cl3a-asd)
-
 (defsystem "cl3a"
     :description "Common Lisp Library of Linear Algebra"
-    :version "0.1"
+    :version "0.2"
     :author "Kiwamu Ishikura"
     :license "GPL"
     :depends-on (:alexandria)
@@ -16,18 +11,20 @@
                                  "mvmult" "mmmult_Goto" "transpose"))
                    (:file "transpose")
                    (:file "utilities")
+                   (:file "utilities_vop")
                    (:file "dotprod_vop")
                    (:file "dotprod"
-                          :depends-on ("utilities" "dotprod_vop"))
+                          :depends-on ("utilities" "utilities_vop" "dotprod_vop"))
                    (:file "norm"
                           :depends-on ("utilities" "dotprod"))
                    (:file "add_vector"
                           :depends-on ("utilities"))
                    (:file "rotate"
                           :depends-on ("utilities"))
+                   (:file "mvmult_vop")
                    (:file "mvmult"
-                          :depends-on ("utilities"))
+                          :depends-on ("utilities" "utilities_vop" "mvmult_vop"))
                    ;; (:file "mmmult7_vop")
                    (:file "mmmult_Goto"
                           :depends-on ("utilities")))))
-    :in-order-to ((test-op (load-op cl3a-test))))
+    :in-order-to ((test-op (load-op "cl3a-test"))))
