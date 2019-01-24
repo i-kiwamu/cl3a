@@ -3,8 +3,10 @@
   (:use :cl :sb-ext :sb-c :sb-vm)
   (:export :aref4-ps :aref8-ps :aref2-pd :aref4-pd
            :aset4-ps :aset8-ps :aset2-pd :aset4-pd
-           :f4*-ps :f8*-ps :f2*-pd :f4*-pd
-           :f4+-ps :f8+-ps :f2+-pd :f4+-pd
+           :f4*-ps :f8*-ps :f8*-ss
+           :f2*-pd :f4*-pd :f4*-sd
+           :f4+-ps :f8+-ps :f8+-ss
+           :f2+-pd :f4+-pd :f4+-sd
            :setzero4-ps :setzero8-ps :setzero2-pd :setzero4-pd))
 (in-package :cl3a.utilities_vop)
 
@@ -73,6 +75,12 @@
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
+(defknown f8*-ss (single-float
+                  (sb-ext:simd-pack-256 single-float))
+    (sb-ext:simd-pack-256 single-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
 (defknown f2*-pd ((sb-kernel:simd-pack double-float)
                   (sb-kernel:simd-pack double-float))
     (sb-kernel:simd-pack double-float)
@@ -80,6 +88,12 @@
   :overwrite-fndb-silently t)
 
 (defknown f4*-pd ((sb-ext:simd-pack-256 double-float)
+                  (sb-ext:simd-pack-256 double-float))
+    (sb-ext:simd-pack-256 double-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown f4*-sd (double-float
                   (sb-ext:simd-pack-256 double-float))
     (sb-ext:simd-pack-256 double-float)
     (movable flushable always-translatable)
@@ -97,6 +111,12 @@
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
+(defknown f8+-ss (single-float
+                  (sb-ext:simd-pack-256 single-float))
+    (sb-ext:simd-pack-256 single-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
 (defknown f2+-pd ((sb-kernel:simd-pack double-float)
                   (sb-kernel:simd-pack double-float))
     (sb-kernel:simd-pack double-float)
@@ -104,6 +124,12 @@
   :overwrite-fndb-silently t)
 
 (defknown f4+-pd ((sb-ext:simd-pack-256 double-float)
+                  (sb-ext:simd-pack-256 double-float))
+    (sb-ext:simd-pack-256 double-float)
+    (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown f4+-sd (double-float
                   (sb-ext:simd-pack-256 double-float))
     (sb-ext:simd-pack-256 double-float)
     (movable flushable always-translatable)
@@ -279,6 +305,26 @@
   (:generator 4
               (inst vmulps dst x y)))
 
+(define-vop (cl3a.utilities_vop::f8*-ss)
+  (:translate cl3a.utilities_vop::f8*-ss)
+  (:policy :fast-safe)
+  (:args (s :scs (single-reg))
+         (y :scs (single-avx2-reg)))
+  (:arg-types single-float simd-pack-256-single)
+  (:temporary (:sc single-avx2-reg) tmp)
+  (:temporary (:sc single-avx2-reg) x)
+  (:results (dst :scs (single-avx2-reg) :from (:argument 0)))
+  (:result-types simd-pack-256-single)
+  (:generator 5
+              (inst vinsertps x s s (ash 1 4))
+              (inst vinsertps x x s (ash 2 4))
+              (inst vinsertps x x s (ash 3 4))
+              (inst vinsertps tmp s s (ash 1 4))
+              (inst vinsertps tmp tmp s (ash 2 4))
+              (inst vinsertps tmp tmp s (ash 3 4))
+              (inst vinsertf128 x x tmp 1)
+              (inst vmulps dst x y)))
+
 (define-vop (cl3a.utilities_vop::f2*-pd)
   (:translate cl3a.utilities_vop::f2*-pd)
   (:policy :fast-safe)
@@ -304,6 +350,23 @@
    4
    (inst vmulpd dst x y)))
 
+(define-vop (cl3a.utilities_vop::f4*-sd)
+  (:translate cl3a.utilities_vop::f4*-sd)
+  (:policy :fast-safe)
+  (:args (s :scs (double-reg))
+         (y :scs (double-avx2-reg)))
+  (:arg-types double-float simd-pack-256-double)
+  (:temporary (:sc int-avx2-reg) tmp)
+  (:temporary (:sc double-avx2-reg) x)
+  (:results (dst :scs (double-avx2-reg) :from (:argument 0)))
+  (:result-types simd-pack-256-double)
+  (:generator
+   5
+   (inst vunpcklpd x s s)
+   (inst vunpcklpd tmp s s)
+   (inst vinsertf128 x x tmp 1)
+   (inst vmulpd dst x y)))
+
 (define-vop (cl3a.utilities_vop::f4+-ps)
   (:translate cl3a.utilities_vop::f4+-ps)
   (:policy :fast-safe)
@@ -325,6 +388,26 @@
   (:results (dst :scs (single-avx2-reg) :from (:argument 0)))
   (:result-types simd-pack-256-single)
   (:generator 4
+              (inst vaddps dst x y)))
+
+(define-vop (cl3a.utilities_vop::f8*-ss)
+  (:translate cl3a.utilities_vop::f8+-ss)
+  (:policy :fast-safe)
+  (:args (s :scs (single-reg))
+         (y :scs (single-avx2-reg)))
+  (:arg-types single-float simd-pack-256-single)
+  (:temporary (:sc single-avx2-reg) tmp)
+  (:temporary (:sc single-avx2-reg) x)
+  (:results (dst :scs (single-avx2-reg) :from (:argument 0)))
+  (:result-types simd-pack-256-single)
+  (:generator 5
+              (inst vinsertps x s s (ash 1 4))
+              (inst vinsertps x x s (ash 2 4))
+              (inst vinsertps x x s (ash 3 4))
+              (inst vinsertps tmp s s (ash 1 4))
+              (inst vinsertps tmp tmp s (ash 2 4))
+              (inst vinsertps tmp tmp s (ash 3 4))
+              (inst vinsertf128 x x tmp 1)
               (inst vaddps dst x y)))
 
 (define-vop (cl3a.utilities_vop::f2+-pd)
@@ -350,6 +433,23 @@
   (:result-types simd-pack-256-double)
   (:generator
    4
+   (inst vaddpd dst x y)))
+
+(define-vop (cl3a.utilities_vop::f4+-sd)
+  (:translate cl3a.utilities_vop::f4+-sd)
+  (:policy :fast-safe)
+  (:args (s :scs (double-reg))
+         (y :scs (double-avx2-reg)))
+  (:arg-types double-float simd-pack-256-double)
+  (:temporary (:sc int-avx2-reg) tmp)
+  (:temporary (:sc double-avx2-reg) x)
+  (:results (dst :scs (double-avx2-reg) :from (:argument 0)))
+  (:result-types simd-pack-256-double)
+  (:generator
+   5
+   (inst vunpcklpd x s s)
+   (inst vunpcklpd tmp s s)
+   (inst vinsertf128 x x tmp 1)
    (inst vaddpd dst x y)))
 
 (define-vop (cl3a.utilities_vop::setzero4-ps)
@@ -433,11 +533,17 @@
 (defun f8*-ps (x y)
   (f8*-ps x y))
 
+(defun f8*-ss (s y)
+  (f8*-ss s y))
+
 (defun f2*-pd (x y)
   (f2*-pd x y))
 
 (defun f4*-pd (x y)
   (f4*-pd x y))
+
+(defun f4*-sd (s y)
+  (f4*-sd s y))
 
 (defun f4+-ps (x y)
   (f4+-ps x y))
@@ -445,11 +551,17 @@
 (defun f8+-ps (x y)
   (f8+-ps x y))
 
+(defun f8+-ss (s y)
+  (f8+-ss s y))
+
 (defun f2+-pd (x y)
   (f2+-pd x y))
 
 (defun f4+-pd (x y)
   (f4+-pd x y))
+
+(defun f4+-sd (s y)
+  (f4+-sd s y))
 
 (defun setzero4-ps ()
   (setzero4-ps))
