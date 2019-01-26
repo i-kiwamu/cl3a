@@ -38,9 +38,10 @@
           (dotimes (j nc)
             (let ((a (coerce (aref ma i j) 'single-float))
                   (b (coerce (aref mb i j) 'single-float)))
-            (when (/= a b)
-              (setf test nil)
-              (return-from check)))))))
+              (when (/= a b)
+              ;; (when (> (abs (- a b)) 1d-6)
+                (setf test nil)
+                (return-from check)))))))
     test))
 
 
@@ -175,5 +176,6 @@
 (dadd-test 4999)
 (drotate-test 4999)
 (dm*v-test 499)
-(dm*m-test 53)
+(dm*m-test 499)
+;; (dm*m-test 1031)
 (finalize)

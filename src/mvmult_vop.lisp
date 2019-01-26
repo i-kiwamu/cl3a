@@ -5,17 +5,19 @@
 (in-package :cl3a.mvmult_vop)
 
 
-(defknown mvi2x4-pd (fixnum fixnum fixnum
-                   (simple-array double-float (*))
-                   (simple-array double-float (*))
-                   (sb-kernel:simd-pack double-float))
+(defknown mvi2x4-pd
+    (fixnum fixnum fixnum
+     (simple-array double-float (*))
+     (simple-array double-float (*))
+     (sb-kernel:simd-pack double-float))
     (sb-kernel:simd-pack double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
-(defknown mvi2x8-pd (fixnum fixnum fixnum
-                     (simple-array double-float (*))
-                     (simple-array double-float (*)))
+(defknown mvi2x8-pd
+    (fixnum fixnum fixnum
+     (simple-array double-float (*))
+     (simple-array double-float (*)))
     (sb-ext:simd-pack-256 double-float)
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
