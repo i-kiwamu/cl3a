@@ -5,27 +5,66 @@
 (in-package :cl3a.mmmult9)
 
 
-(declaim (ftype (function (integer integer
-                           (simple-array double-float (* *)) integer
-                           (simple-array double-float (* *)) integer
-                           (simple-array double-float (* *)) integer))
+(declaim (ftype (function (fixnum
+                           (simple-array double-float (* *)) fixnum
+                           (simple-array double-float (* *)) fixnum
+                           (simple-array double-float (* *)) fixnum))
                 incf-dgebp))
-(defun incf-dgebp (k k0 A rma Bt rmb C rmc)
-  (declare (optimize (speed 3) (safety 0))
-           (type integer k k0 rma rmb rmc)
+(defun incf-dgebp (k A rma Bt rmb C rmc)
+  (declare (optimize (speed 3) (safety 1))  ; safety should be 1 to avoid "Unhandled memory fault"
+           (type fixnum k rma rmb rmc)
            (type (simple-array double-float (* *)) A Bt C))
-  (multiple-value-bind (r0 r1 r2 r3)
-      (%simd-pack-256-doubles
-       (dgebp-reg-ker k0
-                      (sb-kernel:%array-data-vector A) rma
-                      (sb-kernel:%array-data-vector Bt) rmb))
-    (incf (row-major-aref C rmc)
-          (+ r0 r1 r2 r3
-             (loop :for p :of-type integer :from k0 :below k
-                   :sum (* (row-major-aref A (+ rma p))
-                           (row-major-aref Bt (+ rmb p)))
-                     :into c :of-type double-float
-                   :finally (return c))))))
+  (let ((k0 (min-factor k 8)))
+    (declare (type fixnum k0))
+    (multiple-value-bind (r0 r1 r2 r3)
+        (%simd-pack-256-doubles
+         (dgebp-reg-ker k0
+                        (sb-kernel:%array-data-vector A) rma
+                        (sb-kernel:%array-data-vector Bt) rmb))
+      (incf (row-major-aref C rmc)
+            (+ r0 r1 r2 r3
+               (loop :for p :of-type fixnum :from k0 :below k
+                     :sum (* (row-major-aref A (+ rma p))
+                             (row-major-aref Bt (+ rmb p)))
+                       :into c :of-type double-float
+                     :finally (return c))))))
+  nil)
+
+
+(declaim (ftype (function (fixnum
+                           (simple-array double-float (* *)) fixnum
+                           (simple-array double-float (* *)) fixnum
+                           (simple-array double-float (* *)) fixnum))
+                incf-dgebp2))
+(defun incf-dgebp2 (k A rma Bt rmb C rmc)
+  (declare ; (optimize (speed 3) (safety 0))
+           (optimize (speed 3) (safety 1))  ; safety should be 1 to avoid "Unhandled memory fault"
+           (type fixnum k rma rmb rmc)
+           (type (simple-array double-float (* *)) A Bt C))
+  (let ((k0 (min-factor k 8))
+        (rmb1 (+ rmb k))
+        (rmc1 (1+ rmc)))
+    (declare (type fixnum k0 rmb1 rmc1))
+    (multiple-value-bind (r0 r1 r2 r3)
+        (%simd-pack-256-doubles
+         (dgebp-reg-ker2 k k0
+                         (sb-kernel:%array-data-vector A) rma
+                         (sb-kernel:%array-data-vector Bt) rmb))
+      (incf (row-major-aref C rmc)
+            (+ r0 r2
+               (loop :for p :of-type fixnum :from k0 :below k
+                     :sum (* (row-major-aref A (+ rma p))
+                             (row-major-aref Bt (+ rmb p)))
+                       :into c :of-type double-float
+                     :finally (return c))))
+      (incf (row-major-aref C rmc1)
+            (+ r1 r3
+               (loop :for p :of-type fixnum :from k0 :below k
+                     :sum (* (row-major-aref A (+ rma p))
+                             (row-major-aref Bt (+ rmb1 p)))
+                       :into c :of-type double-float
+                     :finally (return c))))))
+  nil)
 
 
 (declaim (ftype (function (fixnum fixnum fixnum fixnum fixnum fixnum
@@ -50,8 +89,9 @@
            (type (simple-array double-float (* *)) A Bt C))
   (let* ((t10 (min-factor t1 mr))
          (t11 (- t1 t10))
-         (k0 (min-factor k 8)))
-    (declare (type fixnum t10 t11 k0))
+         (t30 (min-factor t3 2))
+         (t31 (- t3 t30)))
+    (declare (type fixnum t10 t11 t30 t31))
     (do ((ir 0 (+ ir mr)))
         ((>= ir t10))
       (declare (type fixnum ir))
@@ -59,11 +99,17 @@
       (dotimes (i (min mr t1))
         (let ((rma (array-row-major-index A (+ ic ir i) 0)))
           (declare (type fixnum rma))
-          (dotimes (j t3)
+          (do ((j 0 (+ j 2)))
+              ((>= j t30))
             (let ((rmb (array-row-major-index Bt (+ jr j) 0))
                   (rmc (array-row-major-index C (+ ic ir i) (+ jr j))))
               (declare (type fixnum rmb rmc))
-              (incf-dgebp k k0 A rma Bt rmb C rmc))))))
+              (incf-dgebp2 k A rma Bt rmb C rmc)))
+          (when (> t31 0)
+            (let ((rmb (array-row-major-index Bt (+ jr t30) 0))
+                  (rmc (array-row-major-index C (+ ic ir i) (+ jr t30))))
+              (declare (type fixnum rmb rmc))
+              (incf-dgebp k A rma Bt rmb C rmc))))))
     (when (> t11 0)
       (do ((ir t10 (1+ ir)))
           ((>= ir t1))
@@ -73,7 +119,7 @@
             (let ((rmb (array-row-major-index Bt (+ jr j) 0))
                   (rmc (array-row-major-index C (+ ic ir) (+ jr j))))
               (declare (type fixnum rmb rmc))
-              (incf-dgebp k k0 A rma Bt rmb C rmc))))))))
+              (incf-dgebp k A rma Bt rmb C rmc))))))))
 
 
 (declaim (ftype (function (fixnum fixnum fixnum fixnum fixnum fixnum
@@ -129,7 +175,7 @@
          (Bt (make-array (list n k)
                          :element-type 'double-float)))
     (declare (type fixnum m m0 m1 k n)
-             (type (simple-array double-float (* *)) Bt))
+             (type (simple-array double-float (* *)) Bt))  ;; consider dynamic-extent for Bt
     (copy-matrix-transpose-sd B 0 k 0 n Bt)
     (unless (= m0 0)
       (do ((ic 0 (+ ic mc)))

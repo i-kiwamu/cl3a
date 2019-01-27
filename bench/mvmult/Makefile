@@ -11,7 +11,7 @@ FFLAGS = -O3 -fimplicit-none -fbounds-check -lopenblas -L$(BLASLIB) -I$(BLASINC)
 
 CPP = clang++
 EIGENINC = /usr/local/include/eigen3/
-CPPFLAGS = -O3 -I$(EIGENINC)
+CPPFLAGS = -O3 -march=native -I$(EIGENINC)
 
 
 .PHONY: all
