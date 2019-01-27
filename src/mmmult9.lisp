@@ -35,33 +35,51 @@
                            (simple-array double-float (* *)) fixnum
                            (simple-array double-float (* *)) fixnum
                            (simple-array double-float (* *)) fixnum))
-                incf-dgebp2))
-(defun incf-dgebp2 (k A rma Bt rmb C rmc)
+                incf-dgebp4))
+(defun incf-dgebp4 (k A rma Bt rmb C rmc)
   (declare ; (optimize (speed 3) (safety 0))
            (optimize (speed 3) (safety 1))  ; safety should be 1 to avoid "Unhandled memory fault"
            (type fixnum k rma rmb rmc)
            (type (simple-array double-float (* *)) A Bt C))
-  (let ((k0 (min-factor k 8))
-        (rmb1 (+ rmb k))
-        (rmc1 (1+ rmc)))
-    (declare (type fixnum k0 rmb1 rmc1))
+  (let* ((k0 (min-factor k 8))
+         (rmb1 (+ rmb k))
+         (rmb2 (+ rmb1 k))
+         (rmb3 (+ rmb2 k))
+         (rmc1 (1+ rmc))
+         (rmc2 (1+ rmc1))
+         (rmc3 (1+ rmc2)))
+    (declare (type fixnum k0 rmb1 rmb2 rmb3 rmc1 rmc2 rmc3))
     (multiple-value-bind (r0 r1 r2 r3)
         (%simd-pack-256-doubles
-         (dgebp-reg-ker2 k k0
+         (dgebp-reg-ker4 k k0
                          (sb-kernel:%array-data-vector A) rma
                          (sb-kernel:%array-data-vector Bt) rmb))
       (incf (row-major-aref C rmc)
-            (+ r0 r2
+            (+ r0
                (loop :for p :of-type fixnum :from k0 :below k
                      :sum (* (row-major-aref A (+ rma p))
                              (row-major-aref Bt (+ rmb p)))
                        :into c :of-type double-float
                      :finally (return c))))
       (incf (row-major-aref C rmc1)
-            (+ r1 r3
+            (+ r2
                (loop :for p :of-type fixnum :from k0 :below k
                      :sum (* (row-major-aref A (+ rma p))
                              (row-major-aref Bt (+ rmb1 p)))
+                       :into c :of-type double-float
+                     :finally (return c))))
+      (incf (row-major-aref C rmc2)
+            (+ r1
+               (loop :for p :of-type fixnum :from k0 :below k
+                     :sum (* (row-major-aref A (+ rma p))
+                             (row-major-aref Bt (+ rmb2 p)))
+                       :into c :of-type double-float
+                     :finally (return c))))
+      (incf (row-major-aref C rmc3)
+            (+ r3
+               (loop :for p :of-type fixnum :from k0 :below k
+                     :sum (* (row-major-aref A (+ rma p))
+                             (row-major-aref Bt (+ rmb3 p)))
                        :into c :of-type double-float
                      :finally (return c))))))
   nil)
@@ -89,7 +107,7 @@
            (type (simple-array double-float (* *)) A Bt C))
   (let* ((t10 (min-factor t1 mr))
          (t11 (- t1 t10))
-         (t30 (min-factor t3 2))
+         (t30 (min-factor t3 4))
          (t31 (- t3 t30)))
     (declare (type fixnum t10 t11 t30 t31))
     (do ((ir 0 (+ ir mr)))
@@ -99,17 +117,19 @@
       (dotimes (i (min mr t1))
         (let ((rma (array-row-major-index A (+ ic ir i) 0)))
           (declare (type fixnum rma))
-          (do ((j 0 (+ j 2)))
+          (do ((j 0 (+ j 4)))
               ((>= j t30))
             (let ((rmb (array-row-major-index Bt (+ jr j) 0))
                   (rmc (array-row-major-index C (+ ic ir i) (+ jr j))))
               (declare (type fixnum rmb rmc))
-              (incf-dgebp2 k A rma Bt rmb C rmc)))
+              (incf-dgebp4 k A rma Bt rmb C rmc)))
           (when (> t31 0)
-            (let ((rmb (array-row-major-index Bt (+ jr t30) 0))
-                  (rmc (array-row-major-index C (+ ic ir i) (+ jr t30))))
-              (declare (type fixnum rmb rmc))
-              (incf-dgebp k A rma Bt rmb C rmc))))))
+            (do ((j t30 (1+ j)))
+                ((>= j t3))
+              (let ((rmb (array-row-major-index Bt (+ jr j) 0))
+                    (rmc (array-row-major-index C (+ ic ir i) (+ jr j))))
+                (declare (type fixnum rmb rmc))
+                (incf-dgebp k A rma Bt rmb C rmc)))))))
     (when (> t11 0)
       (do ((ir t10 (1+ ir)))
           ((>= ir t1))
