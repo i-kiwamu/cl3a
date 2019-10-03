@@ -40,7 +40,7 @@
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-single-float simple-array-single-float
               tagged-num)
   (:temporary (:sc single-sse-reg :from (:argument 0)) xmm0)
@@ -49,16 +49,19 @@
   (:result-types simd-pack-single)
   (:generator
    25
-   (inst movups xmm0 (make-ea-for-float-ref x i 0 4
-                                            :scale (ash 8 (- n-fixnum-tag-bits))))
-   (inst movups xmm1 (make-ea-for-float-ref y i 0 4
-                                            :scale (ash 8 (- n-fixnum-tag-bits))))
-   (inst mulps xmm1 xmm0)
-   (inst movups xmm0 (make-ea-for-float-ref x i 4 4
-                                            :scale (ash 8 (- n-fixnum-tag-bits))))
-   (inst movups xmm2 (make-ea-for-float-ref y i 4 4
-                                            :scale (ash 8 (- n-fixnum-tag-bits))))
-   (inst mulps xmm2 xmm0)
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst movups xmm0 (make-ea-for-float-ref x i 0 4
+                                              :scale (ash 8 (- n-fixnum-tag-bits))))
+     (inst movups xmm1 (make-ea-for-float-ref y i 0 4
+                                              :scale (ash 8 (- n-fixnum-tag-bits))))
+     (inst mulps xmm1 xmm0)
+     (inst movups xmm0 (make-ea-for-float-ref x i 4 4
+                                              :scale (ash 8 (- n-fixnum-tag-bits))))
+     (inst movups xmm2 (make-ea-for-float-ref y i 4 4
+                                              :scale (ash 8 (- n-fixnum-tag-bits))))
+     (inst mulps xmm2 xmm0))
    (inst addps xmm2 xmm1)))
 
 (define-vop (cl3a.dotprod_vop::dpi8-avx2-ps)
@@ -66,7 +69,7 @@
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-single-float simple-array-single-float
               tagged-num)
   (:temporary (:sc single-avx2-reg :from (:argument 0)) ymm0)
@@ -76,10 +79,13 @@
   (:generator
    25
    (inst vxorps ymm2 ymm2 ymm2)
-   (inst vmovups ymm0 (make-ea-for-float-ref x i 0 4
-                                             :scale (ash 8 (- n-fixnum-tag-bits))))
-   (inst vmovups ymm1 (make-ea-for-float-ref y i 0 4
-                                             :scale (ash 8 (- n-fixnum-tag-bits))))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst vmovups ymm0 (make-ea-for-float-ref x i 0 4
+                                               :scale (ash 8 (- n-fixnum-tag-bits))))
+     (inst vmovups ymm1 (make-ea-for-float-ref y i 0 4
+                                               :scale (ash 8 (- n-fixnum-tag-bits)))))
    (inst vfmadd231ps ymm2 ymm0 ymm1)))
 
 (define-vop (cl3a.dotprod_vop::dpi8-pd)
@@ -87,7 +93,7 @@
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-double-float simple-array-double-float
               tagged-num)
   (:temporary (:sc double-sse-reg :from (:argument 0)) xmm0)
@@ -96,36 +102,39 @@
   (:result-types simd-pack-double)
   (:generator
    25
-   (inst movupd xmm0
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst movupd xmm1
-         (make-ea-for-float-ref
-          y i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst mulpd xmm1 xmm0)
-   (inst movupd xmm0
-         (make-ea-for-float-ref
-          x i 2 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst movupd xmm2
-         (make-ea-for-float-ref
-          y i 2 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst mulpd xmm2 xmm0)
-   (inst addpd xmm2 xmm1)
-   (inst movupd xmm0
-         (make-ea-for-float-ref
-          x i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst movupd xmm1
-         (make-ea-for-float-ref
-          y i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst mulpd xmm1 xmm0)
-   (inst addpd xmm1 xmm2)
-   (inst movupd xmm0
-         (make-ea-for-float-ref
-          x i 6 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst movupd xmm2
-         (make-ea-for-float-ref
-          y i 6 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst mulpd xmm2 xmm0)
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst movupd xmm0
+           (make-ea-for-float-ref
+            x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst movupd xmm1
+           (make-ea-for-float-ref
+            y i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst mulpd xmm1 xmm0)
+     (inst movupd xmm0
+           (make-ea-for-float-ref
+            x i 2 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst movupd xmm2
+           (make-ea-for-float-ref
+            y i 2 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst mulpd xmm2 xmm0)
+     (inst addpd xmm2 xmm1)
+     (inst movupd xmm0
+           (make-ea-for-float-ref
+            x i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst movupd xmm1
+           (make-ea-for-float-ref
+            y i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst mulpd xmm1 xmm0)
+     (inst addpd xmm1 xmm2)
+     (inst movupd xmm0
+           (make-ea-for-float-ref
+            x i 6 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst movupd xmm2
+           (make-ea-for-float-ref
+            y i 6 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst mulpd xmm2 xmm0))
    (inst addpd xmm2 xmm1)))
 
 (define-vop (cl3a.dotprod_vop::dpi8-avx2-pd)
@@ -133,7 +142,7 @@
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
          (y :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-double-float simple-array-double-float
               tagged-num)
   (:temporary (:sc double-avx2-reg :from (:argument 0)) ymm0)
@@ -143,20 +152,23 @@
   (:generator
    25
    (inst vxorpd ymm2 ymm2 ymm2)
-   (inst vmovupd ymm0
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst vmovupd ymm1
-         (make-ea-for-float-ref
-          y i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst vfmadd231pd ymm2 ymm0 ymm1)
-   (inst vmovupd ymm0
-         (make-ea-for-float-ref
-          x i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst vmovupd ymm1
-         (make-ea-for-float-ref
-          y i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst vfmadd231pd ymm2 ymm0 ymm1)))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst vmovupd ymm0
+           (make-ea-for-float-ref
+            x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst vmovupd ymm1
+           (make-ea-for-float-ref
+            y i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst vfmadd231pd ymm2 ymm0 ymm1)
+     (inst vmovupd ymm0
+           (make-ea-for-float-ref
+            x i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst vmovupd ymm1
+           (make-ea-for-float-ref
+            y i 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+     (inst vfmadd231pd ymm2 ymm0 ymm1))))
 
 (in-package :cl3a.dotprod_vop)
 

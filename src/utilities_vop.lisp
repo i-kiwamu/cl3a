@@ -162,95 +162,115 @@
   (:translate cl3a.utilities_vop::aref4-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-single-float tagged-num)
   (:results (r :scs (single-sse-reg)))
   (:result-types simd-pack-single)
   (:generator
    5
-   (inst movups r (make-ea-for-float-ref
-                   x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits))))))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst movups r (make-ea-for-float-ref
+                     x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))))))
 
 (define-vop (cl3a.utilities_vop::aref8-ps)
   (:translate cl3a.utilities_vop::aref8-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-single-float tagged-num)
   (:results (r :scs (single-avx2-reg)))
   (:result-types simd-pack-256-single)
   (:generator
    5
-   (inst vmovups r (make-ea-for-float-ref
-                    x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits))))))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst vmovups r (make-ea-for-float-ref
+                      x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))))))
 
 (define-vop (cl3a.utilities_vop::aref2-pd)
   (:translate cl3a.utilities_vop::aref2-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-double-float tagged-num)
   (:results (r :scs (double-sse-reg)))
   (:result-types simd-pack-double)
   (:generator
    7
-   (inst movupd r
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst movupd r
+           (make-ea-for-float-ref
+            x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))))))
 
 (define-vop (cl3a.utilities_vop::aref4-pd)
   (:translate cl3a.utilities_vop::aref4-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg)))
+         (i-tn :scs (signed-reg)))
   (:arg-types simple-array-double-float tagged-num)
   (:results (r :scs (double-avx2-reg)))
   (:result-types simd-pack-256-double)
   (:generator
    7
-   (inst vmovupd r
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst vmovupd r
+           (make-ea-for-float-ref
+            x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))))))
 
 (define-vop (cl3a.utilities_vop::aset4-ps)
   (:translate cl3a.utilities_vop::aset4-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg))
+         (i-tn :scs (signed-reg))
          (src :scs (single-sse-reg)))
   (:arg-types simple-array-single-float tagged-num simd-pack-single)
   (:results (r :scs (single-sse-reg)))
   (:result-types simd-pack-single)
   (:generator
    5
-   (inst movups
-         (make-ea-for-float-ref
-          x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))
-         src)
-   (move r src)))
+   (when (not (location= r src))
+     (move r src))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst movups
+           (make-ea-for-float-ref
+            x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))
+           r))))
 
 (define-vop (cl3a.utilities_vop::aset8-ps)
   (:translate cl3a.utilities_vop::aset8-ps)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg))
+         (i-tn :scs (signed-reg))
          (src :scs (single-avx2-reg)))
   (:arg-types simple-array-single-float tagged-num simd-pack-256-single)
   (:results (r :scs (single-avx2-reg)))
   (:result-types simd-pack-256-single)
   (:generator
    5
-   (inst vmovups
-         (make-ea-for-float-ref
-          x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))
-         src)
-   (move r src)))
+   (when (not (location= r src))
+     (move r src))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst vmovups
+           (make-ea-for-float-ref
+            x i 0 4 :scale (ash 8 (- n-fixnum-tag-bits)))
+           r))))
 
 (define-vop (cl3a.utilities_vop::aset2-pd)
   (:translate cl3a.utilities_vop::aset2-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg))
+         (i-tn :scs (signed-reg))
          (src :scs (double-sse-reg) :target r))
   (:arg-types simple-array-double-float tagged-num simd-pack-double)
   (:results (r :scs (double-sse-reg) :from (:argument 3)))
@@ -259,16 +279,19 @@
    7
    (when (not (location= r src))
      (move r src))
-   (inst movupd
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         r)))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst movupd
+           (make-ea-for-float-ref
+            x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+           r))))
 
 (define-vop (cl3a.utilities_vop::aset4-pd)
   (:translate cl3a.utilities_vop::aset4-pd)
   (:policy :fast-safe)
   (:args (x :scs (descriptor-reg))
-         (i :scs (signed-reg))
+         (i-tn :scs (signed-reg))
          (src :scs (double-avx2-reg) :target r))
   (:arg-types simple-array-double-float tagged-num simd-pack-256-double)
   (:results (r :scs (double-avx2-reg) :from (:argument 3)))
@@ -277,10 +300,13 @@
    7
    (when (not (location= r src))
      (move r src))
-   (inst vmovupd
-         (make-ea-for-float-ref
-          x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         r)))
+   (let ((i (if (sc-is i-tn immediate)
+                (tn-value i-tn)
+                i-tn)))
+     (inst vmovupd
+           (make-ea-for-float-ref
+            x i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+           r))))
 
 (define-vop (cl3a.utilities_vop::f4*-ps)
   (:translate cl3a.utilities_vop::f4*-ps)

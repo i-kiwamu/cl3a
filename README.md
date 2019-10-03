@@ -22,12 +22,12 @@ Performance of dot product in 10^5 repeat by 3.4 GHz Intel Core i7
 ![performance of dot product](https://github.com/i-kiwamu/cl3a/raw/master/bench/dotprod/performance_dotprod.png)
 
 ### Matrix-vector multiplication
-Performance of dot product in 10^3 repeat by 3.4 GHz Intel Core i7
+Performance of multiplication between matrix and vector in 10^3 repeat by 3.4 GHz Intel Core i7
 
 ![performance of matrix-vector multiplication](https://github.com/i-kiwamu/cl3a/raw/master/bench/mvmult/performance_mvmult.png)
 
 ### Matrix-matrix multiplication
-Performance of dot product in 10 repeat by 3.4 GHz Intel Core i7
+Performance of matrix multiplication in 10 repeat by 3.4 GHz Intel Core i7
 
 ![performance of matrix-matrix multiplication](https://github.com/i-kiwamu/cl3a/raw/master/bench/mmmult/performance_mmmult.png)
 

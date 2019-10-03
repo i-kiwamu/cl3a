@@ -116,14 +116,11 @@
    (move k0 k0-ptr)
    (move rma rma-ptr)
    (move rmb0 rmb-ptr)
-   (move rmb1 rmb-ptr)
-   (move rmb2 rmb-ptr)
-   (move rmb3 rmb-ptr)
+   (move rmb1 rmb0)
    (inst add rmb1 k)
+   (move rmb2 rmb1)
    (inst add rmb2 k)
-   (inst add rmb2 k)
-   (inst add rmb3 k)
-   (inst add rmb3 k)
+   (move rmb3 rmb2)
    (inst add rmb3 k)
    (inst xor p p)
    (inst vxorpd ymm0 ymm0 ymm0)
@@ -131,30 +128,55 @@
    (inst vxorpd ymm2 ymm2 ymm2)
    (inst vxorpd ymm3 ymm3 ymm3)
    LOOP
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base A :index rma
+   ;;                      :disp (- (+ (* vector-data-offset n-word-bytes)
+   ;;                                  (* 8 8 8))  ; byte * element-size * offset (1 dword = 8 byte?)
+   ;;                               other-pointer-lowtag)))
    (inst vmovupd ymm4
          (make-ea-for-float-ref
           A rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm5
          (make-ea-for-float-ref
           A rma 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base Bt :index rmb0
+   ;;                      :disp (- (+ (* vector-data-offset n-word-bytes)
+   ;;                                  (* 8 8 8))  ; byte * element-size * offset
+   ;;                               other-pointer-lowtag)))
    (inst vmovupd ymm6
          (make-ea-for-float-ref
           Bt rmb0 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm7
          (make-ea-for-float-ref
           Bt rmb0 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base Bt :index rmb1
+   ;;                      :disp (- (+ (* vector-data-offset n-word-bytes)
+   ;;                                  (* 8 8 8))  ; byte * element-size * offset
+   ;;                               other-pointer-lowtag)))
    (inst vmovupd ymm8
          (make-ea-for-float-ref
           Bt rmb1 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm9
          (make-ea-for-float-ref
           Bt rmb1 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base Bt :index rmb2
+   ;;                      :disp (- (+ (* vector-data-offset n-word-bytes)
+   ;;                                  (* 8 8 8))  ; byte * element-size * offset
+   ;;                               other-pointer-lowtag)))
    (inst vmovupd ymm10
          (make-ea-for-float-ref
           Bt rmb2 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm11
          (make-ea-for-float-ref
           Bt rmb2 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base Bt :index rmb3
+   ;;                      :disp (- (+ (* vector-data-offset n-word-bytes)
+   ;;                                  (* 8 8 8))  ; byte * element-size * offset
+   ;;                               other-pointer-lowtag)))
    (inst vmovupd ymm12
          (make-ea-for-float-ref
           Bt rmb3 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
