@@ -17,7 +17,6 @@
   (let* ((m (array-dimension matA 0))
          (k (array-dimension matA 1))
          (m0 (min-factor m 2))
-         ;; (k0 (min-factor k 4)))
          (k0 (min-factor k 8)))
     (declare (type fixnum m k m0 k0))
     (do ((i 0 (+ i 2)))
