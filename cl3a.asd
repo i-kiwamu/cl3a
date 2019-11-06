@@ -8,7 +8,7 @@
                   :components
                   ((:file "cl3a"
                     :depends-on ("dotprod" "norm" "add_vector" "rotate"
-                                 "mvmult" "mmmult9" "transpose"))
+                                 "mvmult" "mmmult10" "transpose"))
                    (:file "transpose")
                    (:file "utilities_vop")
                    (:file "utilities"
@@ -25,7 +25,7 @@
                    (:file "mvmult_vop")
                    (:file "mvmult"
                           :depends-on ("utilities" "utilities_vop" "mvmult_vop"))
-                   (:file "mmmult9_vop")
-                   (:file "mmmult9"
-                          :depends-on ("utilities" "mmmult9_vop")))))
+                   (:file "mmmult10_vop")
+                   (:file "mmmult10"
+                          :depends-on ("utilities" "mmmult10_vop")))))
     :in-order-to ((test-op (load-op "cl3a-test"))))

@@ -176,6 +176,6 @@
 (dadd-test 4999)
 (drotate-test 4999)
 (dm*v-test 499)
-(dm*m-test 499)
+(dm*m-test 521)
 ;; (dm*m-test 1031)
 (finalize)

@@ -8,6 +8,7 @@
            :f4+-ps :f8+-ps :f8+-ss
            :f2+-pd :f4+-pd :f4+-sd
            :setzero4-ps :setzero8-ps :setzero2-pd :setzero4-pd))
+           ; :copy-vector-pd))
 (in-package :cl3a.utilities_vop)
 
 
@@ -153,6 +154,14 @@
 (defknown setzero4-pd ()
     (sb-ext:simd-pack-256 double-float)
     (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown copy-vector-pd
+    ((simple-array double-float (*))
+     fixnum fixnum
+     (simple-array double-float (*)))
+    (any)
+  (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
 
@@ -514,6 +523,41 @@
    5
    (inst vxorpd r r r)))
 
+;; (define-vop (cl3a.utilities_vop::copy-vector-pd)
+;;   (:translate cl3a.utilities_vop::copy-vector-pd)
+;;   (:policy :fast-safe)
+;;   (:args (vin :scs (descriptor-reg) :target tmp)
+;;          (i-ptr :scs (signed-reg) :target i)
+;;          (e-ptr :scs (signed-reg) :target e)
+;;          (vout :scs (descriptor-reg)))
+;;   (:arg-types simple-array-double-float
+;;               tagged-num tagged-num
+;;               simple-array-double-float)
+;;   (:results (result :scs (descriptor-reg)))
+;;   (:temporary (:sc signed-reg :offset rcx-offset) i)
+;;   (:temporary (:sc signed-reg) e)
+;;   (:temporary (:sc signed-reg) j)
+;;   (:temporary (:sc double-avx2-reg) tmp)
+;;   (:generator
+;;    10
+;;    (move i i-ptr)
+;;    (move e e-ptr)
+;;    (inst xor j j)
+;;    LOOP
+;;    (inst vmovupd tmp
+;;          (make-ea-for-float-ref
+;;           vin i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+;;    (inst vmovupd
+;;          (make-ea-for-float-ref
+;;           vout j 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+;;          tmp)
+;;    (inst add i 4)
+;;    (inst add j 4)
+;;    (inst cmp i e)
+;;    (inst jmp :b LOOP)
+;;    DONE
+;;    (move result vout)))
+
 
 (in-package :cl3a.utilities_vop)
 
@@ -600,3 +644,6 @@
 
 (defun setzero4-pd ()
   (setzero4-pd))
+
+;; (defun copy-vector-pd (vin i e vout)
+;;   (copy-vector-pd vin i e vout))

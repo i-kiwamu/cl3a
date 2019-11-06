@@ -1,7 +1,9 @@
 (in-package :cl-user)
 (defpackage cl3a.utilities
   (:use :cl :alexandria :cl3a.utilities_vop)
-  (:export :+cache-line+
+  (:export :int3 :make-int3 :int3-i :int3-k :int3-j
+           :int3-p :setf-int3-i :setf-int3-k :setf-int3-j
+           :+cache-line+
            :+L1-size+
            :+L2-size+
            :+L3-size+
@@ -12,6 +14,7 @@
            :min-factor
            :type-byte-length
            :copy-matrix-sd :copy-matrix-pd
+           :copy-matrix-to-vector-pd
            :copy-matrix-transpose-sd))
 (in-package :cl3a.utilities)
 
@@ -23,6 +26,12 @@
   (defconstant +L3-size+ (the fixnum 4194304))
   (defconstant +associativity+ (the fixnum 8))
   (defconstant +unroll+ (the fixnum 8)))
+
+
+(defstruct (int3)
+  (i 0 :type fixnum)
+  (k 0 :type fixnum)
+  (j 0 :type fixnum))
 
 
 (defun different-length-warn (na nb)
@@ -96,9 +105,10 @@
 (declaim (ftype (function ((simple-array double-float (* *))
                            fixnum fixnum fixnum fixnum
                            (simple-array double-float (* *))))
-                copy-matrix-sd))
+                copy-matrix-pd))
 (defun copy-matrix-pd (ma si ni sj nj mb)
-  (declare (type (simple-array double-float (* *)) ma mb)
+  (declare (optimize (speed 3) (safety 1))
+           (type (simple-array double-float (* *)) ma mb)
            (type fixnum si ni sj nj))
   (let* ((nr (min ni
                   (array-dimension ma 0)
@@ -106,27 +116,65 @@
          (nc (min nj
                   (array-dimension ma 1)
                   (array-dimension mb 1)))
-         (nc0 (min-factor nc 4))
-         (nc1 (- nc nc0)))
-    (declare (type fixnum nr nc nc0 nc1))
+         (nc0 (min-factor nc 4)))
+    (declare (type fixnum nr nc nc0))
     (dotimes (i nr)
+      (declare (type fixnum i))
       (let ((rma (array-row-major-index ma (+ i si) sj))
             (rmb (array-row-major-index mb i 0)))
         (declare (type fixnum rma rmb))
         (do ((j 0 (+ j 4)))
             ((>= j nc0))
+          (declare (type fixnum j))
           (sb-sys:%primitive
            aset4-pd (sb-kernel:%array-data-vector mb) rmb
                     (aref4-pd (sb-kernel:%array-data-vector ma) rma))
           (incf rma 4)
           (incf rmb 4))
-        (when (> nc1 0)
-          (do ((j nc0 (1+ j)))
-              ((>= j nc))
-            (setf (row-major-aref mb rmb)
-                  (row-major-aref ma rma))
-            (incf rma)
-            (incf rmb)))))))
+        (do ((j nc0 (1+ j)))
+            ((>= j nc))
+          (declare (type fixnum j))
+          (setf (row-major-aref mb rmb)
+                (row-major-aref ma rma))
+          (incf rma)
+          (incf rmb))))))
+
+
+(declaim (ftype (function ((simple-array double-float (* *))
+                           fixnum fixnum fixnum fixnum
+                           (simple-array double-float (*))))
+                copy-matrix-to-vector-pd))
+(defun copy-matrix-to-vector-pd (ma si ni sj nj vb)
+  (declare (optimize (speed 3) (safety 1))
+           (type (simple-array double-float (* *)) ma)
+           (type (simple-array double-float (*)) vb)
+           (type fixnum si ni sj nj))
+  (let* ((nr (min ni
+                  (array-dimension ma 0)))
+         (nc (min nj
+                  (array-dimension ma 1)))
+         (nc0 (min-factor nc 4)))
+    (declare (type fixnum nr nc nc0))
+    (dotimes (i nr)
+      (declare (type fixnum i))
+      (let ((rma (array-row-major-index ma (+ i si) sj))
+            (rmb (* i nc)))
+        (declare (type fixnum rma rmb))
+        (do ((j 0 (+ j 4)))
+            ((>= j nc0))
+          (declare (type fixnum j))
+          (sb-sys:%primitive
+           aset4-pd vb rmb
+                    (aref4-pd (sb-kernel:%array-data-vector ma) rma))
+          (incf rma 4)
+          (incf rmb 4))
+        (do ((j nc0 (1+ j)))
+            ((>= j nc))
+          (declare (type fixnum j))
+          (setf (aref vb rmb)
+                (row-major-aref ma rma))
+          (incf rma)
+          (incf rmb))))))
 
 
 (declaim (ftype (function ((simple-array double-float (* *))
@@ -147,3 +195,4 @@
       (dotimes (i nr)
         (setf (aref mb j i)
               (aref ma (+ i si) (+ j sj)))))))
+
