@@ -1,6 +1,6 @@
 (defsystem "cl3a"
     :description "Common Lisp Library of Linear Algebra"
-    :version "0.2"
+    :version "0.3"
     :author "Kiwamu Ishikura"
     :license "GPL"
     :depends-on (:alexandria)
