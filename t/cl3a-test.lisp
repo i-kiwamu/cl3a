@@ -170,12 +170,13 @@
     (is res1 res2 :test #'equal-matrix)))
 
 
-(plan 6)  ;; use prime number
+(plan 8)  ;; use prime number
 (ddotprod-test 4999)
 (dnorm-test 4999)
 (dadd-test 4999)
 (drotate-test 4999)
 (dm*v-test 499)
-(dm*m-test 521)
-;; (dm*m-test 1031)
+(dm*m-test 3)
+(dm*m-test 17)
+(dm*m-test 1031)
 (finalize)
