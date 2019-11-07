@@ -37,11 +37,14 @@
            (type int3 pos sizes2)
            (type fixnum i2)
            (type (simple-array double-float (*)) Caux))
-  (dotimes (i (int3-i sizes2))
-    (let ((x (the fixnum (* i (int3-j sizes2))))
-          (rmc (array-row-major-index C (the fixnum (+ (int3-i pos) i2 i)) (int3-j pos))))
+  (dotimes (i3 (int3-i sizes2))
+    (declare (type fixnum i3))
+    (let ((x (* i3 (int3-j sizes2)))
+          (rmc (array-row-major-index C (+ (int3-i pos) i2 i3) (int3-j pos))))
       (declare (type fixnum x rmc))
-      (dotimes (j (int3-j sizes2))
+      (dotimes (j3 (int3-j sizes2))
+        (declare (type fixnum j3))
+        ;; (print (format nil "  POS = ~A, i2 = ~A, (i3,j3) = (~A, ~A)" pos i2 i3 j3))
         (incf (row-major-aref C rmc) (aref Caux x))
         (setf (aref Caux x) 0d0)
         (incf x)
@@ -67,7 +70,7 @@
   ;;   i: A[i1+i2,:] = Ampd[i2,:], C[i1+i2,:] = Caux[0,:]
   ;;   k: A[:,k1] = Ampd[:,0]
   ;;   j: C[:,j1] = Caux[:,0]
-  (declare (optimize (speed 3) (safety 1))
+  (declare (optimize (speed 3) (safety 0))
            (type int3 sizes0 sizes1 pos)
            (type (simple-array double-float (*)) Ampd Caux)
            (type (simple-array double-float (* *)) B)
@@ -100,7 +103,7 @@
   ;;   i: A[i1+i2,:] = Ampd[i2,:], C[i1+i2,:] = Caux[0,:]
   ;;   k: A[:,k1] = Ampd[:,0]
   ;;   j: C[:,j1] = Caux[:,0]
-  (declare (optimize (speed 3) (safety 1))
+  (declare (optimize (speed 3) (safety 0))
            (type int3 sizes0 sizes1 pos)
            (type (simple-array double-float (*)) Ampd Caux)
            (type (simple-array double-float (* *)) B)
@@ -183,8 +186,8 @@
          (n1r (- n n1))
          (sizes2-00 (make-int3 :i +mr+ :k (int3-k sizes1) :j +nr+))
          (sizes2-10 (make-int3 :i 1 :k (int3-k sizes1) :j +nr+))
-         (sizes2-11 (make-int3 :i mc :k (int3-k sizes1) :j n1r))
-         (C11d (make-array (* mc n1r) :element-type 'double-float)))
+         (sizes2-11 (make-int3 :i 1 :k (int3-k sizes1) :j n1r))
+         (C11d (make-array n1r :element-type 'double-float)))
     (declare (type fixnum mc n mc1 n1 n1r)
              (type int3 sizes2-00 sizes2-10 sizes2-11)
              (type (simple-array double-float (*)) C11d))
