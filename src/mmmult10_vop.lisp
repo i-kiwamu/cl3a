@@ -12,7 +12,6 @@
      (simple-array double-float (*))
      fixnum fixnum fixnum)
     (simple-array double-float (*))
-    ; t
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
@@ -23,7 +22,6 @@
      (simple-array double-float (*))
      fixnum fixnum fixnum)
     (simple-array double-float (*))
-    ; t
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
@@ -38,9 +36,9 @@
          (Apd :scs (descriptor-reg) :to :eval)
          (B :scs (descriptor-reg) :to :eval)
          (Caux :scs (descriptor-reg) :to :eval)
-         (rma-ptr :scs (signed-reg) :target rma)
-         (rmb-ptr :scs (signed-reg) :target rmb)
-         (rmc-ptr :scs (signed-reg) :target rmc))
+         (rma-init :scs (signed-reg) :target rma)
+         (rmb-init :scs (signed-reg) :target rmb)
+         (rmc :scs (signed-reg)))
   (:arg-types tagged-num tagged-num
               simple-array-double-float
               simple-array-double-float
@@ -50,7 +48,6 @@
   (:temporary (:sc signed-reg :from (:argument 1)) n)
   (:temporary (:sc signed-reg :from (:argument 5)) rma)
   (:temporary (:sc signed-reg :from (:argument 6)) rmb)
-  (:temporary (:sc signed-reg :from (:argument 7)) rmc)
   (:temporary (:sc signed-reg :offset rcx-offset) k)
   (:temporary (:sc double-avx2-reg) ymm0)  ; for Apd
   (:temporary (:sc double-avx2-reg) ymm1)  ; for B
@@ -59,13 +56,12 @@
   (:temporary (:sc double-avx2-reg) ymm4)
   (:results (result :scs (descriptor-reg)))
   (:result-types simple-array-double-float)
-  ; (:results)
   (:generator
    30
    (move p p-ptr)
    (move n n-ptr)
-   (move rma rma-ptr)
-   (move rmb rmb-ptr)
+   (move rma rma-init)
+   (move rmb rmb-init)
    (inst xor k k)
    (inst vxorpd ymm3 ymm3 ymm3)
    (inst vxorpd ymm4 ymm4 ymm4)
@@ -80,24 +76,43 @@
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vfmadd231pd ymm3 ymm0 ymm1)
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base B
+   ;;                :index rmb
+   ;;                :scale (ash 16 (- n-fixnum-tag-bits))
+   ;;                :disp 128))
    (inst vfmadd231pd ymm4 ymm0 ymm2)
+   ;; (inst prefetch :t0
+   ;;       (make-ea :byte :base B
+   ;;                :index rmb
+   ;;                :scale (ash 16 (- n-fixnum-tag-bits))
+   ;;                :disp 192))
    (inst add k 1)
    (inst add rma 1)
    (inst add rmb n)
    (inst cmp k p)
    (inst jmp :b LOOP)
    DONE
-   (move rmc rmc-ptr)
-   (inst vmovupd
-         (make-ea-for-float-ref
-          Caux rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         ymm3)
-   (inst vmovupd
-         (make-ea-for-float-ref
-          Caux rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         ymm4)
+   (sc-case rmc
+     (immediate
+      (inst vmovupd
+            (make-ea-for-float-ref
+             Caux (tn-value rmc) 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+            ymm3)
+      (inst vmovupd
+            (make-ea-for-float-ref
+             Caux (tn-value rmc) 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+            ymm4))
+     (signed-reg
+      (inst vmovupd
+            (make-ea-for-float-ref
+             Caux rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+            ymm3)
+      (inst vmovupd
+            (make-ea-for-float-ref
+             Caux rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+            ymm4)))
    (move result Caux)))
-   ; ))
 
 (define-vop (cl3a.mmmult10_vop::dgebp-mr-nr-ker)
   (:translate cl3a.mmmult10_vop::dgebp-mr-nr-ker)
@@ -107,9 +122,9 @@
          (Apd :scs (descriptor-reg) :to :eval)
          (B :scs (descriptor-reg) :to :eval)
          (Caux :scs (descriptor-reg) :to :eval)
-         (rma-ptr :scs (signed-reg) :target rma)
-         (rmb-ptr :scs (signed-reg) :target rmb)
-         (rmc-ptr :scs (signed-reg) :target rmc))
+         (rma-init :scs (signed-reg) :target rma)
+         (rmb-init :scs (signed-reg) :target rmb)
+         (rmc-init :scs (signed-reg) :target rmc))
   (:arg-types tagged-num tagged-num
               simple-array-double-float
               simple-array-double-float
@@ -140,8 +155,8 @@
    30
    (move pc pc-ptr)
    (move n n-ptr)
-   (move rma0 rma-ptr)
-   (move rmb rmb-ptr)
+   (move rma0 rma-init)
+   (move rmb rmb-init)
    (inst xor k k)
    (inst vxorpd ymm3 ymm3 ymm3)
    (inst vxorpd ymm4 ymm4 ymm4)
@@ -188,7 +203,7 @@
    (inst cmp k pc)
    (inst jmp :b LOOP)
    DONE
-   (move rmc rmc-ptr)
+   (move rmc rmc-init)
    (inst vmovupd
          (make-ea-for-float-ref
           Caux rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
@@ -225,7 +240,6 @@
           Caux rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
          ymm10)
    (move result Caux)))
-   ; ))
 
 
 (in-package :cl3a.mmmult10_vop)

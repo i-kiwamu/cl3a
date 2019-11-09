@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage cl3a.mmmult10
-  (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities :cl3a.mmmult10_vop)
+  (:use :cl :sb-ext :sb-c :alexandria :cl3a.utilities_vop :cl3a.utilities :cl3a.mmmult10_vop)
   (:export :dm*m))
 (in-package :cl3a.mmmult10)
 
@@ -81,7 +81,7 @@
          (rmb (array-row-major-index B (int3-k pos) (int3-j pos)))
          (rmc 0))
     (declare (type fixnum pc n rma rmb rmc))
-    (dgebp-mr-nr-ker pc n Ampd (sb-kernel:%array-data-vector B) Caux rma rmb rmc)))
+    (dgebp-mr-nr-ker pc n Ampd (array-storage-vector B) Caux rma rmb rmc)))
 
 
 (declaim (ftype (function (int3 int3
@@ -114,7 +114,7 @@
          (rmb (array-row-major-index B (int3-k pos) (int3-j pos)))
          (rmc 0))
     (declare (type fixnum pc n rma rmb rmc))
-    (dgebp-1-nr-ker pc n Ampd (sb-kernel:%array-data-vector B) Caux rma rmb rmc)))
+    (dgebp-1-nr-ker pc n Ampd (array-storage-vector B) Caux rma rmb rmc)))
 
 
 (declaim (ftype (function (int3 int3

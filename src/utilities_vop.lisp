@@ -7,8 +7,8 @@
            :f2*-pd :f4*-pd :f4*-sd
            :f4+-ps :f8+-ps :f8+-ss
            :f2+-pd :f4+-pd :f4+-sd
-           :setzero4-ps :setzero8-ps :setzero2-pd :setzero4-pd))
-           ; :copy-vector-pd))
+           :setzero4-ps :setzero8-ps :setzero2-pd :setzero4-pd
+           :prefetcht0))
 (in-package :cl3a.utilities_vop)
 
 
@@ -40,28 +40,28 @@
                     fixnum
                     (sb-kernel:simd-pack single-float))
     (sb-kernel:simd-pack single-float)
-    (movable flushable always-translatable)
+    (flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown aset8-ps ((simple-array single-float (*))
                     fixnum
                     (sb-ext:simd-pack-256 single-float))
     (sb-ext:simd-pack-256 single-float)
-    (movable flushable always-translatable)
+    (flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown aset2-pd ((simple-array double-float (*))
                     fixnum
                     (sb-kernel:simd-pack double-float))
     (sb-kernel:simd-pack double-float)
-    (movable flushable always-translatable)
+    (flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown aset4-pd ((simple-array double-float (*))
                     fixnum
                     (sb-ext:simd-pack-256 double-float))
     (sb-ext:simd-pack-256 double-float)
-    (movable flushable always-translatable)
+    (flushable always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown f4*-ps ((sb-kernel:simd-pack single-float)
@@ -156,12 +156,11 @@
     (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
-(defknown copy-vector-pd
-    ((simple-array double-float (*))
-     fixnum fixnum
-     (simple-array double-float (*)))
-    (any)
-  (movable flushable always-translatable)
+(defknown prefetcht0 (sb-sys:system-area-pointer
+                      (member 2 4 8 16)
+                      fixnum)
+    (values &optional)
+    (movable flushable always-translatable)
   :overwrite-fndb-silently t)
 
 
@@ -523,40 +522,24 @@
    5
    (inst vxorpd r r r)))
 
-;; (define-vop (cl3a.utilities_vop::copy-vector-pd)
-;;   (:translate cl3a.utilities_vop::copy-vector-pd)
-;;   (:policy :fast-safe)
-;;   (:args (vin :scs (descriptor-reg) :target tmp)
-;;          (i-ptr :scs (signed-reg) :target i)
-;;          (e-ptr :scs (signed-reg) :target e)
-;;          (vout :scs (descriptor-reg)))
-;;   (:arg-types simple-array-double-float
-;;               tagged-num tagged-num
-;;               simple-array-double-float)
-;;   (:results (result :scs (descriptor-reg)))
-;;   (:temporary (:sc signed-reg :offset rcx-offset) i)
-;;   (:temporary (:sc signed-reg) e)
-;;   (:temporary (:sc signed-reg) j)
-;;   (:temporary (:sc double-avx2-reg) tmp)
-;;   (:generator
-;;    10
-;;    (move i i-ptr)
-;;    (move e e-ptr)
-;;    (inst xor j j)
-;;    LOOP
-;;    (inst vmovupd tmp
-;;          (make-ea-for-float-ref
-;;           vin i 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-;;    (inst vmovupd
-;;          (make-ea-for-float-ref
-;;           vout j 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-;;          tmp)
-;;    (inst add i 4)
-;;    (inst add j 4)
-;;    (inst cmp i e)
-;;    (inst jmp :b LOOP)
-;;    DONE
-;;    (move result vout)))
+(define-vop (cl3a.utilities_vop::prefetcht0)
+  (:translate cl3a.utilities_vop::prefetcht0)
+  (:policy :fast-safe)
+  (:args (base :scs (sap-reg))
+         (index :scs (signed-reg)))
+  (:arg-types sb-sys:system-area-pointer
+              (:constant (member . #.(loop for i below 4
+                                        collect (ash 1 (+ i sb-vm:n-fixnum-tag-bits)))))
+              fixnum)
+  (:results)
+  (:info stride)
+  (:generator
+   1
+   (inst prefetch :t0
+         (make-ea :byte :base base
+                  :index index
+                  :scale (ash stride (- n-fixnum-tag-bits))
+                  :disp 0))))
 
 
 (in-package :cl3a.utilities_vop)
@@ -645,5 +628,14 @@
 (defun setzero4-pd ()
   (setzero4-pd))
 
-;; (defun copy-vector-pd (vin i e vout)
-;;   (copy-vector-pd vin i e vout))
+(defun prefetcht0 (base stride index)
+  (declare (type (member 2 4 8 16) stride))
+  (ecase stride
+    (2
+     (prefetcht0 base 2 index))
+    (4
+     (prefetcht0 base 4 index))
+    (8
+     (prefetcht0 base 8 index))
+    (16
+     (prefetcht0 base 16 index))))
