@@ -1,8 +1,9 @@
 (in-package :cl-user)
 (defpackage naive-funcs
-  (:use :cl :prove :cl3a)
+  (:use :cl :cl3a)
   (:nicknames naive)
   (:export :dv*v-naive
+           :sv*v-naive
            :dnorm-naive
            :dv+v-naive
            :drotate-naive
@@ -19,6 +20,20 @@
   (declare (type (simple-array double-float (*)) va vb))
   (let ((nv (min (length va) (length vb)))
         (res 0d0))
+    (declare (type fixnum nv))
+    (dotimes (i nv)
+      (incf res (* (aref va i) (aref vb i))))
+    res))
+
+
+(declaim (ftype (function ((simple-array single-float (*))
+                           (simple-array single-float (*)))
+                          single-float)
+                sv*v-naive))
+(defun sv*v-naive (va vb)
+  (declare (type (simple-array single-float (*)) va vb))
+  (let ((nv (min (length va) (length vb)))
+        (res 0.0))
     (declare (type fixnum nv))
     (dotimes (i nv)
       (incf res (* (aref va i) (aref vb i))))

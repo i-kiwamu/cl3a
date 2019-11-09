@@ -3,7 +3,7 @@
     :version "0.3"
     :author "Kiwamu Ishikura"
     :license "GPL"
-    :depends-on (:alexandria)
+    :depends-on ("alexandria")
     :components ((:module "src"
                   :components
                   ((:file "cl3a"
@@ -28,4 +28,14 @@
                    (:file "mmmult10_vop")
                    (:file "mmmult10"
                           :depends-on ("utilities" "mmmult10_vop")))))
-    :in-order-to ((test-op (load-op "cl3a-test"))))
+    :in-order-to ((test-op (test-op "cl3a/tests"))))
+
+
+(defsystem "cl3a/tests"
+    :description "test for cl3a"
+    :depends-on ("cl3a" "rove")
+    :components ((:module "t"
+                  :components
+                  ((:file "cl3a-test" :depends-on ("naive-funcs"))
+                   (:file "naive-funcs"))))
+    :perform (test-op (op c) (symbol-call :rove '#:run c)))
