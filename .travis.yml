@@ -14,11 +14,11 @@ env:
 install:
   # Install Roswell
   - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
-  - ros install prove
+  - ros install rove
 
 before_script:
   - ros --version
   - ros config
 
 script:
-  - run-prove cl3a-test.asd
+  - rove cl3a.asd
