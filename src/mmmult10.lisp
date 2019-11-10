@@ -266,12 +266,6 @@
       (copy-matrix-to-vector-pd A i1 +mc+ k1 pc *Ampd*)
       (dgebp sizes0 sizes1 *Ampd* B C pos))
     (when (> m1r 0)
-      ;; (let ((Ampd (make-array (* m1r pc) :element-type 'double-float)))
-      ;;   (declare (type (simple-array double-float (*)) Ampd))
-      ;;   (setf (int3-i pos) m1
-      ;;         (int3-i sizes1) m1r)
-      ;;   (copy-matrix-to-vector-pd A m1 m1r k1 pc Ampd)
-      ;;   (dgebp sizes0 sizes1 Ampd B C pos)))
       (setf (int3-i pos) m1
             (int3-i sizes1) m1r)
       (copy-matrix-to-vector-pd A m1 m1r k1 pc *Ampd*)
