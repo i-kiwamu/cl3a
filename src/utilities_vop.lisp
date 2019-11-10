@@ -8,7 +8,8 @@
            :f4+-ps :f8+-ps :f8+-ss
            :f2+-pd :f4+-pd :f4+-sd
            :setzero4-ps :setzero8-ps :setzero2-pd :setzero4-pd
-           :prefetcht0))
+           :prefetcht0
+           :copy-vector8-pd))
 (in-package :cl3a.utilities_vop)
 
 
@@ -161,6 +162,14 @@
                       fixnum)
     (values &optional)
     (movable flushable always-translatable)
+  :overwrite-fndb-silently t)
+
+(defknown copy-vector8-pd
+    (fixnum
+     (simple-array double-float (*)) fixnum
+     (simple-array double-float (*)) fixnum)
+    (simple-array double-float (*))
+    (any always-translatable)
   :overwrite-fndb-silently t)
 
 
@@ -541,6 +550,52 @@
                   :scale (ash stride (- n-fixnum-tag-bits))
                   :disp 0))))
 
+(define-vop (cl3a.utilities_vop::copy-vector8-pd)
+  (:translate cl3a.utilities_vop::copy-vector8-pd)
+  (:policy :fast-safe)
+  (:args (n0 :scs (signed-reg))
+         (va :scs (descriptor-reg))
+         (rma-init :scs (signed-reg))
+         (vb :scs (descriptor-reg))
+         (rmb-init :scs (signed-reg)))
+  (:arg-types tagged-num
+              simple-array-double-float tagged-num
+              simple-array-double-float tagged-num)
+  (:temporary (:sc signed-reg) i)
+  (:temporary (:sc signed-reg :from (:argument 2)) rma)
+  (:temporary (:sc signed-reg :from (:argument 4)) rmb)
+  (:temporary (:sc double-avx2-reg) ymm0)
+  (:temporary (:sc double-avx2-reg) ymm1)
+  (:results (res :scs (descriptor-reg)))
+  (:result-types simple-array-double-float)
+  (:generator
+   10
+   (inst xor i i)
+   (move rma rma-init)
+   (move rmb rmb-init)
+   LOOP
+   (inst vmovupd ymm0
+         (make-ea-for-float-ref
+          va rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd ymm1
+         (make-ea-for-float-ref
+          va rma 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd
+         (make-ea-for-float-ref
+          vb rmb 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm0)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          vb rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm1)
+   (inst add i 8)
+   (inst add rma 8)
+   (inst add rmb 8)
+   (inst cmp i n0)
+   (inst jmp :b LOOP)
+   DONE
+   (move res vb)))
+
 
 (in-package :cl3a.utilities_vop)
 
@@ -639,3 +694,6 @@
      (prefetcht0 base 8 index))
     (16
      (prefetcht0 base 16 index))))
+
+(defun copy-vector8-pd (n0 va rma vb rmb)
+  (copy-vector8-pd n0 va rma vb rmb))

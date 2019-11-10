@@ -12,7 +12,7 @@
      (simple-array double-float (*))
      fixnum fixnum fixnum)
     (simple-array double-float (*))
-    (movable flushable always-translatable)
+    (any always-translatable)
   :overwrite-fndb-silently t)
 
 (defknown dgebp-mr-nr-ker
@@ -22,7 +22,7 @@
      (simple-array double-float (*))
      fixnum fixnum fixnum)
     (simple-array double-float (*))
-    (movable flushable always-translatable)
+    (any always-translatable)
   :overwrite-fndb-silently t)
 
 
