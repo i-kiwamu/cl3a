@@ -125,7 +125,7 @@
   (:temporary (:sc signed-reg :from (:argument 5)) rma)
   (:temporary (:sc signed-reg :from (:argument 5)) rma0)
   (:temporary (:sc signed-reg :from (:argument 6)) rmb)
-  ;; (:temporary (:sc signed-reg :from (:argument 6)) rmb-next)
+  (:temporary (:sc signed-reg :from (:argument 6)) rmb-next)
   (:temporary (:sc signed-reg :from (:argument 7)) rmc)
   (:temporary (:sc signed-reg :offset rcx-offset) k)
   (:temporary (:sc double-avx2-reg) ymm0)  ; for A
@@ -147,8 +147,8 @@
    (move n n-ptr)
    (move rma0 rma-init)
    (move rmb rmb-init)
-   ;; (move rmb-next rmb-init)
-   ;; (inst add rmb-next n)
+   (move rmb-next rmb-init)
+   (inst add rmb-next n)
    (inst xor k k)
    (inst vxorpd ymm3 ymm3 ymm3)
    (inst vxorpd ymm4 ymm4 ymm4)
@@ -169,28 +169,28 @@
    (inst vmovupd ymm2
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   ;; (inst prefetch :t0
-   ;;       (make-ea :byte :base B
-   ;;                :index rmb-next
-   ;;                :scale (ash 16 (- n-fixnum-tag-bits))
-   ;;                :disp 0))
    (inst vfmadd231pd ymm3 ymm0 ymm1)
-   ;; (inst prefetch :t0
-   ;;       (make-ea :byte :base B
-   ;;                :index rmb-next
-   ;;                :scale (ash 16 (- n-fixnum-tag-bits))
-   ;;                :disp 64))
    (inst vfmadd231pd ymm4 ymm0 ymm2)
    (inst add rma pc)
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
           Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst prefetch :t0
+         (make-ea :byte :base B
+                  :index rmb-next
+                  :scale (ash 16 (- n-fixnum-tag-bits))
+                  :disp 0))
    (inst vfmadd231pd ymm5 ymm0 ymm1)
    (inst vfmadd231pd ymm6 ymm0 ymm2)
    (inst add rma pc)
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
           Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst prefetch :t0
+         (make-ea :byte :base B
+                  :index rmb-next
+                  :scale (ash 16 (- n-fixnum-tag-bits))
+                  :disp 64))
    (inst vfmadd231pd ymm7 ymm0 ymm1)
    (inst vfmadd231pd ymm8 ymm0 ymm2)
    (inst add rma pc)
@@ -202,7 +202,7 @@
    (inst add k 1)
    (inst add rma0 1)
    (inst add rmb n)
-   ;; (inst add rmb-next n)
+   (inst add rmb-next n)
    (inst cmp k pc)
    (inst jmp :b LOOP)
    DONE
