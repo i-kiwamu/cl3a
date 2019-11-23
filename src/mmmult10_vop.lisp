@@ -6,7 +6,7 @@
 
 
 (defknown dgebp-1-nr-ker
-    (fixnum fixnum
+    (fixnum
      (simple-array double-float (*))
      (simple-array double-float (*))
      (simple-array double-float (*))
@@ -16,7 +16,7 @@
   :overwrite-fndb-silently t)
 
 (defknown dgebp-mr-nr-ker
-    (fixnum fixnum
+    (fixnum
      (simple-array double-float (*))
      (simple-array double-float (*))
      (simple-array double-float (*))
@@ -32,25 +32,23 @@
   (:translate cl3a.mmmult10_vop::dgebp-1-nr-ker)
   (:policy :fast-safe)
   (:args (p-ptr :scs (signed-reg) :target p)
-         (n-ptr :scs (signed-reg) :target n)
          (Apd :scs (descriptor-reg) :to :eval)
          (B :scs (descriptor-reg) :to :eval)
          (Caux :scs (descriptor-reg) :to :eval)
          (rma-init :scs (signed-reg) :target rma)
          (rmb-init :scs (signed-reg) :target rmb)
          (rmc :scs (signed-reg)))
-  (:arg-types tagged-num tagged-num
+  (:arg-types tagged-num
               simple-array-double-float
               simple-array-double-float
               simple-array-double-float
               tagged-num tagged-num tagged-num)
   (:temporary (:sc signed-reg :from (:argument 0)) p)
-  (:temporary (:sc signed-reg :from (:argument 1)) n)
-  (:temporary (:sc signed-reg :from (:argument 5)) rma)
-  (:temporary (:sc signed-reg :from (:argument 6)) rmb)
+  (:temporary (:sc signed-reg :from (:argument 4)) rma)
+  (:temporary (:sc signed-reg :from (:argument 5)) rmb)
   (:temporary (:sc signed-reg :offset rcx-offset) k)
-  (:temporary (:sc double-avx2-reg) ymm0)  ; for Apd
-  (:temporary (:sc double-avx2-reg) ymm1)  ; for B
+  (:temporary (:sc double-avx2-reg) ymm0)  ; for Ampd
+  (:temporary (:sc double-avx2-reg) ymm1)  ; for Bpnd
   (:temporary (:sc double-avx2-reg) ymm2)
   (:temporary (:sc double-avx2-reg) ymm3)  ; for Caux
   (:temporary (:sc double-avx2-reg) ymm4)
@@ -59,7 +57,6 @@
   (:generator
    30
    (move p p-ptr)
-   (move n n-ptr)
    (move rma rma-init)
    (move rmb rmb-init)
    (inst xor k k)
@@ -79,7 +76,7 @@
    (inst vfmadd231pd ymm4 ymm0 ymm2)
    (inst add k 1)
    (inst add rma 1)
-   (inst add rmb n)
+   (inst add rmb 8)
    (inst cmp k p)
    (inst jmp :b LOOP)
    DONE
@@ -108,20 +105,18 @@
   (:translate cl3a.mmmult10_vop::dgebp-mr-nr-ker)
   (:policy :fast-safe)
   (:args (pc-ptr :scs (signed-reg) :target pc)
-         (n-ptr :scs (signed-reg) :target n)
          (Apd :scs (descriptor-reg) :to :eval)
          (B :scs (descriptor-reg) :to :eval)
          (Caux :scs (descriptor-reg) :to :eval)
          (rma-init :scs (signed-reg) :target rma)
          (rmb-init :scs (signed-reg) :target rmb)
          (rmc-init :scs (signed-reg) :target rmc))
-  (:arg-types tagged-num tagged-num
+  (:arg-types tagged-num
               simple-array-double-float
               simple-array-double-float
               simple-array-double-float
               tagged-num tagged-num tagged-num)
   (:temporary (:sc signed-reg :from (:argument 0)) pc)
-  (:temporary (:sc signed-reg :from (:argument 1)) n)
   (:temporary (:sc signed-reg :from (:argument 5)) rma)
   (:temporary (:sc signed-reg :from (:argument 5)) rma0)
   (:temporary (:sc signed-reg :from (:argument 6)) rmb)
@@ -144,11 +139,10 @@
   (:generator
    30
    (move pc pc-ptr)
-   (move n n-ptr)
    (move rma0 rma-init)
    (move rmb rmb-init)
    (move rmb-next rmb-init)
-   (inst add rmb-next n)
+   (inst add rmb-next 8)
    (inst xor k k)
    (inst vxorpd ymm3 ymm3 ymm3)
    (inst vxorpd ymm4 ymm4 ymm4)
@@ -201,8 +195,8 @@
    (inst vfmadd231pd ymm10 ymm0 ymm2)
    (inst add k 1)
    (inst add rma0 1)
-   (inst add rmb n)
-   (inst add rmb-next n)
+   (inst add rmb 8)
+   (inst add rmb-next 8)
    (inst cmp k pc)
    (inst jmp :b LOOP)
    DONE
@@ -247,8 +241,8 @@
 
 (in-package :cl3a.mmmult10_vop)
 
-(defun dgebp-1-nr-ker (p n Apd B Caux rma rmb rmc)
-  (dgebp-1-nr-ker p n Apd B Caux rma rmb rmc))
+(defun dgebp-1-nr-ker (p Apd B Caux rma rmb rmc)
+  (dgebp-1-nr-ker p Apd B Caux rma rmb rmc))
 
-(defun dgebp-mr-nr-ker (p n Apd B Caux rma rmb rmc)
-  (dgebp-mr-nr-ker p n Apd B Caux rma rmb rmc))
+(defun dgebp-mr-nr-ker (p Apd B Caux rma rmb rmc)
+  (dgebp-mr-nr-ker p Apd B Caux rma rmb rmc))
