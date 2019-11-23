@@ -7,9 +7,10 @@
     :components ((:module "src"
                   :components
                   ((:file "cl3a"
-                          :depends-on ("typedef" "dotprod" "norm" "add_vector"
+                          ;; :depends-on ("typedef" "dotprod" "norm" "add_vector"
+                          :depends-on ("dotprod" "norm" "add_vector"
                                        "rotate" "mvmult" "mmmult10"))
-                   (:file "typedef")
+                   ;; (:file "typedef")
                    (:file "utilities_vop")
                    (:file "utilities"
                           :depends-on ("typedef" "utilities_vop"))
