@@ -13,22 +13,29 @@
                    ;; (:file "typedef")
                    (:file "utilities_vop")
                    (:file "utilities"
-                          :depends-on ("typedef" "utilities_vop"))
+                          :depends-on ("utilities_vop"))
+                          ;; :depends-on ("typedef" "utilities_vop"))
                    (:file "dotprod_vop")
                    (:file "dotprod"
-                          :depends-on ("typedef" "utilities" "utilities_vop" "dotprod_vop"))
+                          :depends-on ("utilities" "utilities_vop" "dotprod_vop"))
+                          ;; :depends-on ("typedef" "utilities" "utilities_vop" "dotprod_vop"))
                    (:file "norm"
-                          :depends-on ("typedef" "utilities" "dotprod"))
+                          :depends-on ("utilities" "dotprod"))
+                          ;; :depends-on ("typedef" "utilities" "dotprod"))
                    (:file "add_vector"
-                          :depends-on ("typedef" "utilities" "utilities_vop"))
+                          :depends-on ("utilities" "utilities_vop"))
+                          ;; :depends-on ("typedef" "utilities" "utilities_vop"))
                    (:file "rotate"
-                          :depends-on ("typedef" "utilities" "utilities_vop"))
+                          :depends-on ("utilities" "utilities_vop"))
+                          ;; :depends-on ("typedef" "utilities" "utilities_vop"))
                    (:file "mvmult_vop")
                    (:file "mvmult"
-                          :depends-on ("typedef" "utilities" "utilities_vop" "mvmult_vop"))
+                          :depends-on ("utilities" "utilities_vop" "mvmult_vop"))
+                          ;; :depends-on ("typedef" "utilities" "utilities_vop" "mvmult_vop"))
                    (:file "mmmult10_vop")
                    (:file "mmmult10"
-                          :depends-on ("typedef" "utilities" "mmmult10_vop")))))
+                          :depends-on ("utilities" "mmmult10_vop")))))
+                          ;; :depends-on ("typedef" "utilities" "mmmult10_vop")))))
     :in-order-to ((test-op (test-op "cl3a/tests"))))
 
 
