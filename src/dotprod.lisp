@@ -1,7 +1,7 @@
 (in-package :cl-user)
 (defpackage cl3a.dotprod
   (:use :cl :sb-ext :sb-c :alexandria
-        :cl3a.typedef :cl3a.utilities :cl3a.utilities_vop :cl3a.dotprod_vop)
+        :cl3a.utilities :cl3a.utilities_vop :cl3a.dotprod_vop)
   (:export :sv*v :dv*v))
 (in-package :cl3a.dotprod)
 
