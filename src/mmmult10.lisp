@@ -11,7 +11,7 @@
   ;; (defconstant +pc+ (the fixnum 16))
   (defconstant +mpc+ (the fixnum (* +mc+ +pc+)))
   (defconstant +mr+ (the fixnum 4))
-  (defconstant +nr+ (the fixnum 8))
+  (defconstant +nr+ (the fixnum 12))
   (defconstant +mnr+ (the fixnum (* +mr+ +nr+)))
   (defconstant +pcnr+ (the fixnum (* +pc+ +nr+))))
 
@@ -26,8 +26,8 @@
                            int3 fixnum
                            (simple-array double-float (*))
                            int3))
-                incf8-Caux))
-(defun incf8-Caux (C pos i2 Caux sizes2)
+                incf12-Caux))
+(defun incf12-Caux (C pos i2 Caux sizes2)
   ;; Args
   ;;   C: output matrix
   ;;   pos: current position = (i1, k1, j1)
@@ -49,7 +49,7 @@
                                                      (the fixnum i3)))
                                       (int3-j pos))))
       (declare (type fixnum x rmc))
-      (incf8-Caux-ker (array-storage-vector C) rmc Caux x))))
+      (incf12-Caux-ker (array-storage-vector C) rmc Caux x))))
       ;; (print (format nil "  POS = ~A, i2 = ~A, i3 = ~A~%  C = ~A~%  Caux = ~A" pos i2 i3 C Caux)))))
 
 
@@ -259,13 +259,13 @@
         (declare (type fixnum i2))
         ;; (print (format nil "mr-nr: (~A, ~A, ~A)" (+ (int3-i pos) i2) (int3-k pos) (int3-j pos)))
         (dgebp-mr-nr sizes1 Ampd *Bpnd* *Cmnd* i2)
-        (incf8-Caux C pos i2 *Cmnd* sizes2-00))
+        (incf12-Caux C pos i2 *Cmnd* sizes2-00))
       (do ((i2 mc1 (1+ i2)))
           ((>= i2 mc))
         (declare (type fixnum i2))
         ;; (print (format nil "1-nr: (~A, ~A, ~A)" (+ (int3-i pos) i2) (int3-k pos) (int3-j pos)))
         (dgebp-1-nr sizes1 Ampd *Bpnd* *C1nd* i2)
-        (incf8-Caux C pos i2 *C1nd* sizes2-10)))
+        (incf12-Caux C pos i2 *C1nd* sizes2-10)))
     (when (> n1r 0)
       (setf (int3-j pos) n1)
       (copy-matrix-to-vector-pd B (int3-k pos) pc n1 n1r *Bpnd*)
