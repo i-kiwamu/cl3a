@@ -92,8 +92,8 @@
 (define-vop (cl3a.mmmult10_vop::dgebp-1-nr-ker)
   (:translate cl3a.mmmult10_vop::dgebp-1-nr-ker)
   (:policy :fast-safe)
-  (:args (p-ptr :scs (signed-reg) :target p)
-         (Apd :scs (descriptor-reg) :to :eval)
+  (:args (pc-ptr :scs (signed-reg) :target pc)
+         (Ampd :scs (descriptor-reg) :to :eval)
          (B :scs (descriptor-reg) :to :eval)
          (Caux :scs (descriptor-reg) :to :eval)
          (rma-init :scs (signed-reg) :target rma)
@@ -104,7 +104,7 @@
               simple-array-double-float
               simple-array-double-float
               tagged-num tagged-num tagged-num)
-  (:temporary (:sc signed-reg :from (:argument 0)) p)
+  (:temporary (:sc signed-reg :from (:argument 0)) pc)
   (:temporary (:sc signed-reg :from (:argument 4)) rma)
   (:temporary (:sc signed-reg :from (:argument 5)) rmb)
   (:temporary (:sc signed-reg :offset rcx-offset) k)
@@ -117,7 +117,7 @@
   (:result-types simple-array-double-float)
   (:generator
    30
-   (move p p-ptr)
+   (move pc pc-ptr)
    (move rma rma-init)
    (move rmb rmb-init)
    (inst xor k k)
@@ -129,7 +129,7 @@
           B rmb 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+          Ampd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm2
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
@@ -138,7 +138,7 @@
    (inst add k 1)
    (inst add rma 1)
    (inst add rmb 8)
-   (inst cmp k p)
+   (inst cmp k pc)
    (inst jmp :b LOOP)
    DONE
    (inst vmovupd
@@ -155,7 +155,7 @@
   (:translate cl3a.mmmult10_vop::dgebp-mr-nr-ker)
   (:policy :fast-safe)
   (:args (pc-ptr :scs (signed-reg) :target pc)
-         (Apd :scs (descriptor-reg) :to :eval)
+         (Ampd :scs (descriptor-reg) :to :eval)
          (B :scs (descriptor-reg) :to :eval)
          (Caux :scs (descriptor-reg) :to :eval)
          (rma-init :scs (signed-reg) :target rma)
@@ -167,11 +167,11 @@
               simple-array-double-float
               tagged-num tagged-num tagged-num)
   (:temporary (:sc signed-reg :from (:argument 0)) pc)
-  (:temporary (:sc signed-reg :from (:argument 5)) rma)
-  (:temporary (:sc signed-reg :from (:argument 5)) rma0)
-  (:temporary (:sc signed-reg :from (:argument 6)) rmb)
-  (:temporary (:sc signed-reg :from (:argument 6)) rmb-next)
-  (:temporary (:sc signed-reg :from (:argument 7)) rmc)
+  (:temporary (:sc signed-reg :from (:argument 4)) rma)
+  (:temporary (:sc signed-reg :from (:argument 4)) rma0)
+  (:temporary (:sc signed-reg :from (:argument 5)) rmb)
+  (:temporary (:sc signed-reg :from (:argument 5)) rmb-next)
+  (:temporary (:sc signed-reg :from (:argument 6)) rmc)
   (:temporary (:sc signed-reg :offset rcx-offset) k)
   (:temporary (:sc double-avx2-reg) ymm0)  ; for A
   (:temporary (:sc double-avx2-reg) ymm1)  ; for B
@@ -209,16 +209,21 @@
           B rmb 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+          Ampd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm2
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst prefetch :t0
+         (make-ea :byte :base Ampd
+                  :index rma-next
+                  :scale (ash 16 (- n-fixnum-tag-bits))
+                  :disp 0))
    (inst vfmadd231pd ymm3 ymm0 ymm1)
    (inst vfmadd231pd ymm4 ymm0 ymm2)
    (inst add rma pc)
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+          Ampd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst prefetch :t0
          (make-ea :byte :base B
                   :index rmb-next
@@ -229,7 +234,7 @@
    (inst add rma pc)
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+          Ampd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst prefetch :t0
          (make-ea :byte :base B
                   :index rmb-next
@@ -240,7 +245,7 @@
    (inst add rma pc)
    (inst vbroadcastsd ymm0
          (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+          Ampd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vfmadd231pd ymm9 ymm0 ymm1)
    (inst vfmadd231pd ymm10 ymm0 ymm2)
    (inst add k 1)
@@ -291,8 +296,11 @@
 
 (in-package :cl3a.mmmult10_vop)
 
-(defun dgebp-1-nr-ker (p Apd B Caux rma rmb rmc)
-  (dgebp-1-nr-ker p Apd B Caux rma rmb rmc))
+(defun dgebp-1-nr-ker (p Ampd B Caux rma rmb rmc)
+  (dgebp-1-nr-ker p Ampd B Caux rma rmb rmc))
 
-(defun dgebp-mr-nr-ker (p Apd B Caux rma rmb rmc)
-  (dgebp-mr-nr-ker p Apd B Caux rma rmb rmc))
+(defun dgebp-mr-nr-ker (p Ampd B Caux rma rmb rmc)
+  (dgebp-mr-nr-ker p Ampd B Caux rma rmb rmc))
+
+(defun incf8-Caux-ker (C rmc-init Caux x-init)
+  (incf8-Caux-ker C rmc-init Caux x-init))

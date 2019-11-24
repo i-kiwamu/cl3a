@@ -101,9 +101,9 @@
   ;;   sizes1: sub sizes 1 = (+mc+ or m1r, +pc+ or p1r, n)
   ;;   sizes2: sub sizes 2 = (+mr+, +pc+ or p1r, +nr+)
   ;;   Ampd: contiguous vector (originally sub-matrix of A (size1) @ (i1, k1))
-  ;;   Bpnd: contiguous vector (originally sub-matrix of B (pc * nr) @ (k1, j1))
-  ;;   Caux: contigous vector (originally sub-matrix of C (size2) @ (i1+i2, j1))
-  ;;   pos: current position of Ampd, B, Caux = (i1, k1, j1)
+  ;;   Bpnd: contiguous vector (originally sub-matrix of B (size2) @ (k1, j1))
+  ;;   Caux: contiguous vector (originally sub-matrix of C (size2) @ (i1+i2, j1))
+  ;;   pos: current position of Ampd, Bpnd, Caux in each original matrices = (i1, k1, j1)
   ;;   i2: index from 0 to mc
   ;; Positions
   ;;   i: A[i1+i2,:] = Ampd[i2,:], C[i1+i2,:] = Caux[0,:]
@@ -133,9 +133,9 @@
   ;;   sizes1: sub sizes 1 = (+mc+ or m1r, +pc+ or p1r, n)
   ;;   sizes2: sub sizes 2 = (1, +pc+ or p1r, +nr+)
   ;;   Ampd: contiguous vector (originally sub-matrix of A (size1) @ (i1, k1))
-  ;;   Bpnd: contiguous vector (originally sub-matrix of B (pc * nr) @ (k1, j1))
-  ;;   Caux: contigous vector (originally sub-matrix of C (size2) @ (i1+i2, j1))
-  ;;   pos: current position of Ampd, B, Caux = (i1, k1, j1)
+  ;;   Bpnd: contiguous vector (originally sub-matrix of B (size2) @ (k1, j1))
+  ;;   Caux: contiguous vector (originally sub-matrix of C (size2) @ (i1+i2, j1))
+  ;;   pos: current position of Ampd, Bpnd, Caux in each original matrices = (i1, k1, j1)
   ;;   i2: index from 0 to mc
   ;; Positions
   ;;   i: A[i1+i2,:] = Ampd[i2,:], C[i1+i2,:] = Caux[0,:]
@@ -166,8 +166,8 @@
   ;;   sizes2: sub sizes 2 = (1, +pc+ or p1r, n1r)
   ;;   Ampd: contiguous vector (originally sub-matrix of A (size1) @ (i1, k1))
   ;;   Bpnd: contiguous vector (originally sub-matrix of B (pc * n1r) @ (k1, j1))
-  ;;   Caux: contigous vector (originally sub-matrix of C (size2) @ (i1+i2, j1))
-  ;;   pos: current position of Ampd, B, Caux = (i1, k1, j1)
+  ;;   Caux: contiguous vector (originally sub-matrix of C (size2) @ (i1+i2, j1))
+  ;;   pos: current position of Ampd, Bpnd, Caux in each original matrices = (i1, k1, j1)
   ;;   i2: index from 0 to mc
   ;; Positions
   ;;   i: A[i1+i2,:] = Ampd[i2,:], C[i1+i2,:] = Caux[0,:]
