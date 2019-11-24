@@ -48,12 +48,12 @@
 (deftest dotprod-test
     (defun ddotprod-test (n)
       (declare (type integer n))
-      (let ((va (make-array n :element-type 'double-float))
-            (vb (make-array n :element-type 'double-float)))
-        (declare (type (simple-array double-float (*)) va vb))
+      (let ((va (make-vec-init n 'double-float))
+            (vb (make-vec-init n 'double-float)))
+        (declare (type (vec double-float) va vb))
         (dotimes (i n)
-          (setf (aref va i) (random 1d0))
-          (setf (aref vb i) (random 1d0)))
+          (setf (vecref va i) (random 1d0))
+          (setf (vecref vb i) (random 1d0)))
         (values
          (coerce (dv*v va vb) 'single-float)
          (coerce (dv*v-naive va vb) 'single-float))))
@@ -79,10 +79,10 @@
 (deftest norm-test
     (defun dnorm-test (n)
       (declare (type integer n))
-      (let ((va (make-array n :element-type 'double-float)))
-        (declare (type (simple-array double-float (*)) va))
+      (let ((va (make-vec-init n 'double-float)))
+        (declare (type (vec double-float) va))
         (dotimes (i n)
-          (setf (aref va i) (random 1d0)))
+          (setf (vecref va i) (random 1d0)))
         (values
          (coerce (dnorm va) 'single-float)
          (coerce (dnorm-naive va) 'single-float))))

@@ -14,12 +14,12 @@ exec ros -Q -- $0 "$@"
 
 (defun run-bench (n m)
   (declare (type fixnum n m))
-  (let ((va (make-array n :element-type 'double-float))
-        (vb (make-array n :element-type 'double-float)))
-    (declare (type (simple-array double-float (*)) va vb))
+  (let ((va (cl3a:make-vec-init n 'double-float))
+        (vb (cl3a:make-vec-init n 'double-float)))
+    (declare (type (cl3a:vec double-float) va vb))
     (dotimes (i n)
-      (setf (aref va i) (random 1d0))
-      (setf (aref vb i) (random 1d0)))
+      (setf (cl3a:vecref va i) (random 1d0))
+      (setf (cl3a:vecref vb i) (random 1d0)))
     (time (loop :repeat m :do (cl3a:dv*v va vb)))))
 
 
@@ -28,8 +28,4 @@ exec ros -Q -- $0 "$@"
   (let ((n (parse-integer n-str))
         (m (parse-integer m-str)))
     (declare (type fixnum n m))
-    ;; #+sbcl (sb-profile:profile "CL3A" "CL3A.UTILITIES" "CL3A.DOTPROD")
-    (run-bench n m)
-    ;; #+sbcl (sb-profile:report)
-    ;; #+sbcl (sb-profile:unprofile)
-    ))
+    (run-bench n m)))

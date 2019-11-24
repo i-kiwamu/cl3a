@@ -4,12 +4,15 @@
   (:export :positive-byte
            :%vec :vec
            :make-vec-init :convert-simple-array-to-vec
+           :%vec-length :vec-length
+           :%vec-eltype :%vec-contents
            :eltype-of
-           :%vecref :vecref
+           :%vecref/single-float :%vecref/double-float :%vecref/long-float :vecref
            :%mat :mat
            :make-mat-init :convert-simple-array-to-mat
            :%nrow :nrow
            :%ncol :ncol
+           :%mat-eltype :%mat-contents
            :%row-major-matref :row-major-matref
            :%matref :matref))
 (in-package :cl3a.typedef)
@@ -99,23 +102,63 @@
 (defmethod eltype-of ((x %vec))
   (%vec-eltype x))
 
-(declaim (inline %vecref))
-(defun %vecref (x i)
-  (declare (type %vec x)
+
+(declaim (ftype (function ((vec single-float)
+                           (unsigned-byte 32))
+                          single-float)
+                %vecref/single-float)
+         (inline %vecref/single-float))
+(defun %vecref/single-float (x i)
+  (declare (type (vec single-float) x)
            (type (unsigned-byte 32) i))
   (aref (%vec-contents x) i))
 
-(defun (setf %vecref) (value x i)
+(defun (setf %vecref/single-float) (value x i)
   (setf (aref (%vec-contents x) i) value))
+
+(declaim (ftype (function ((vec double-float)
+                           (unsigned-byte 32))
+                          double-float)
+                %vecref/double-float)
+         (inline %vecref/double-float))
+(defun %vecref/double-float (x i)
+  (declare (type (vec double-float) x)
+           (type (unsigned-byte 32) i))
+  (aref (%vec-contents x) i))
+
+(defun (setf %vecref/double-float) (value x i)
+  (setf (aref (%vec-contents x) i) value))
+
+(declaim (ftype (function ((vec long-float)
+                           (unsigned-byte 32))
+                          long-float)
+                %vecref/long-float)
+         (inline %vecref/long-float))
+(defun %vecref/long-float (x i)
+  (declare (type (vec long-float) x)
+           (type (unsigned-byte 32) i))
+  (aref (%vec-contents x) i))
+
+(defun (setf %vecref/long-float) (value x i)
+  (setf (aref (%vec-contents x) i) value))
+
 
 (declaim (inline vecref))
 (defun vecref (x i)
   (check-type x %vec)
   (check-type i (unsigned-byte 32))
-  (%vecref x i))
+  (let ((eltype (eltype-of x)))
+    (ecase eltype
+      (single-float (%vecref/single-float x i))
+      (double-float (%vecref/double-float x i))
+      (long-float (%vecref/long-float x i)))))
 
 (defun (setf vecref) (value x i)
-  (setf (%vecref x i) value))
+  (let ((eltype (eltype-of x)))
+    (ecase eltype
+      (single-float (setf (%vecref/single-float x i) value))
+      (double-float (setf (%vecref/double-float x i) value))
+      (long-float (setf (%vecref/long-float x i) value)))))
 
 
 ;; definition of mat (matrix)

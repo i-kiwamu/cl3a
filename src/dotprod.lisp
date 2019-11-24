@@ -1,28 +1,32 @@
 (in-package :cl-user)
 (defpackage cl3a.dotprod
   (:use :cl :sb-ext :sb-c :alexandria
-        :cl3a.utilities :cl3a.utilities_vop :cl3a.dotprod_vop)
+        :cl3a.typedef :cl3a.utilities :cl3a.utilities_vop :cl3a.dotprod_vop)
   (:export :sv*v :dv*v))
 (in-package :cl3a.dotprod)
 
 
-(declaim (ftype (function ((simple-array double-float (*))
-                           (simple-array double-float (*)))
+(declaim (ftype (function ((vec double-float)
+                           (vec double-float))
                           double-float)
                 dv*v))
 (defun dv*v (va vb)
   "Dot product with two double-float vectors va and vb"
   (declare (optimize (speed 3) (safety 0))
-           (type (simple-array double-float (*)) va vb))
-  (let* ((n (min (length va) (length vb)))
+           (type (vec double-float) va vb))
+  (let* ((n (min (%vec-length va) (%vec-length vb)))
          (n0 (min-factor n 16)))
     (declare (type fixnum n n0) )
     (multiple-value-bind (r0 r1 r2 r3)
-        (%simd-pack-256-doubles (dp16-avx2-pd va vb n0))
+        (%simd-pack-256-doubles
+         (dp16-avx2-pd (%vec-contents va)
+                       (%vec-contents vb)
+                       n0))
       (declare (type double-float r0 r1 r2 r3))
       (+ r0 r1 r2 r3
          (loop :for i :of-type fixnum :from n0 :below n
-            :sum (* (aref va i) (aref vb i))
+            :sum (* (the double-float (%vecref/double-float va i))
+                    (the double-float (%vecref/double-float vb i)))
             :into c :of-type double-float
             :finally (return c))))))
 

@@ -12,17 +12,17 @@
 (in-package #:naive-funcs)
 
 
-(declaim (ftype (function ((simple-array double-float (*))
-                           (simple-array double-float (*)))
+(declaim (ftype (function ((vec double-float)
+                           (vec double-float))
                           double-float)
                 dv*v-naive))
 (defun dv*v-naive (va vb)
-  (declare (type (simple-array double-float (*)) va vb))
-  (let ((nv (min (length va) (length vb)))
+  (declare (type (vec double-float) va vb))
+  (let ((nv (min (vec-length va) (vec-length vb)))
         (res 0d0))
     (declare (type fixnum nv))
     (dotimes (i nv)
-      (incf res (* (aref va i) (aref vb i))))
+      (incf res (* (vecref va i) (vecref vb i))))
     res))
 
 
@@ -40,12 +40,12 @@
     res))
 
 
-(declaim (ftype (function ((simple-array double-float (*)))
+(declaim (ftype (function ((vec double-float))
                           double-float)
                 dnorm-naive))
 (defun dnorm-naive (va)
-  (declare (type (simple-array double-float (*)) va))
-  (sqrt (dv*v va va)))
+  (declare (type (vec double-float) va))
+  (sqrt (dv*v-naive va va)))
 
 
 (declaim (ftype (function (double-float (simple-array double-float (*))

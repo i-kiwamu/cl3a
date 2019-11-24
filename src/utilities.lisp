@@ -14,7 +14,8 @@
            :ifloor
            :min-factor
            :type-byte-length
-           :copy-matrix-to-vector-pd))
+           :copy-matrix-to-vector-pd
+           :copy-matrix-to-vector-transposed-pd))
 (in-package :cl3a.utilities)
 
 
@@ -111,5 +112,33 @@
              (rmb (+ rmb-init nc0) (1+ rmb)))
             ((>= j nc))
           (declare (type fixnum j rma rmb))
+          (setf (aref vb rmb)
+                (row-major-aref ma rma)))))))
+
+
+(declaim (ftype (function ((simple-array double-float (* *))
+                           fixnum fixnum fixnum fixnum
+                           (simple-array double-float (*))))
+                copy-matrix-to-vector-transposed-pd))
+(defun copy-matrix-to-vector-transposed-pd (ma si ni sj nj vb)
+  (declare (optimize (speed 3) (safety 0))
+           (type (simple-array double-float (* *)) ma)
+           (type (simple-array double-float (*)) vb)
+           (type fixnum si ni sj nj))
+  (let ((nr (min ni
+                 (array-dimension ma 0)))
+        (nc (min nj
+                 (array-dimension ma 1))))
+    (declare (type fixnum nr nc))
+    (dotimes (j nc)
+      (declare (type fixnum j))
+      (let ((rma-init (array-row-major-index ma si (+ sj j)))
+            (rmb-init (* j nr)))
+        (declare (type fixnum rma-init rmb-init))
+        (do ((i 0 (1+ i))
+             (rma rma-init (+ rma (array-dimension ma 1)))
+             (rmb rmb-init (1+ rmb)))
+            ((>= i nr))
+          (declare (type fixnum i rma rmb))
           (setf (aref vb rmb)
                 (row-major-aref ma rma)))))))

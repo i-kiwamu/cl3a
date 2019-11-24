@@ -1,9 +1,16 @@
 (in-package :cl-user)
 (defpackage cl3a.mmmult10_vop
   (:use :cl :sb-ext :sb-c :sb-vm)
-  (:export :dgebp-1-nr-ker :dgebp-mr-nr-ker))
+  (:export :incf8-Caux-ker :dgebp-1-nr-ker :dgebp-mr-nr-ker))
 (in-package :cl3a.mmmult10_vop)
 
+
+(defknown incf8-Caux-ker
+    ((simple-array double-float (*)) fixnum
+     (simple-array double-float (*)) fixnum)
+    (simple-array double-float (*))
+    (any always-translatable)
+  :overwrite-fndb-silently t)
 
 (defknown dgebp-1-nr-ker
     (fixnum
@@ -27,6 +34,60 @@
 
 
 (in-package :sb-vm)
+
+(define-vop (cl3a.mmmult10_vop::incf8-Caux-ker)
+  (:translate cl3a.mmmult10_vop::incf8-Caux-ker)
+  (:policy :fast-safe)
+  (:args (C :scs (descriptor-reg))
+         (rmc-init :scs (signed-reg) :target rmc)
+         (Caux :scs (descriptor-reg))
+         (x-init :scs (signed-reg) :target x))
+  (:arg-types simple-array-double-float tagged-num
+              simple-array-double-float tagged-num)
+  (:temporary (:sc signed-reg :from (:argument 1)) rmc)
+  (:temporary (:sc signed-reg :from (:argument 3)) x)
+  (:temporary (:sc double-avx2-reg) ymm0)
+  (:temporary (:sc double-avx2-reg) ymm1)
+  (:temporary (:sc double-avx2-reg) ymm2)
+  (:temporary (:sc double-avx2-reg) ymm3)
+  (:results (result :scs (descriptor-reg)))
+  (:result-types simple-array-double-float)
+  (:generator
+   10
+   (move rmc rmc-init)
+   (move x x-init)
+   (inst vmovupd ymm0
+         (make-ea-for-float-ref
+          Caux x 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd ymm2
+         (make-ea-for-float-ref
+          C rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd ymm1
+         (make-ea-for-float-ref
+          Caux x 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vmovupd ymm3
+         (make-ea-for-float-ref
+          C rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vaddpd ymm2 ymm0 ymm2)
+   (inst vaddpd ymm3 ymm1 ymm3)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          C rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm2)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          C rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm3)
+   (inst vxorpd ymm0 ymm0 ymm0)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          Caux x 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm0)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          Caux x 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm0)
+   (move result C)))
 
 (define-vop (cl3a.mmmult10_vop::dgebp-1-nr-ker)
   (:translate cl3a.mmmult10_vop::dgebp-1-nr-ker)
@@ -63,12 +124,12 @@
    (inst vxorpd ymm3 ymm3 ymm3)
    (inst vxorpd ymm4 ymm4 ymm4)
    LOOP
-   (inst vbroadcastsd ymm0
-         (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm1
          (make-ea-for-float-ref
           B rmb 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vbroadcastsd ymm0
+         (make-ea-for-float-ref
+          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm2
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
@@ -80,25 +141,14 @@
    (inst cmp k p)
    (inst jmp :b LOOP)
    DONE
-   (sc-case rmc
-     (immediate
-      (inst vmovupd
-            (make-ea-for-float-ref
-             Caux (tn-value rmc) 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-            ymm3)
-      (inst vmovupd
-            (make-ea-for-float-ref
-             Caux (tn-value rmc) 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-            ymm4))
-     (signed-reg
-      (inst vmovupd
-            (make-ea-for-float-ref
-             Caux rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-            ymm3)
-      (inst vmovupd
-            (make-ea-for-float-ref
-             Caux rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-            ymm4)))
+   (inst vmovupd
+         (make-ea-for-float-ref
+          Caux rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm3)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          Caux rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm4)
    (move result Caux)))
 
 (define-vop (cl3a.mmmult10_vop::dgebp-mr-nr-ker)
@@ -154,12 +204,12 @@
    (inst vxorpd ymm10 ymm10 ymm10)
    LOOP
    (move rma rma0)
-   (inst vbroadcastsd ymm0
-         (make-ea-for-float-ref
-          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm1
          (make-ea-for-float-ref
           B rmb 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
+   (inst vbroadcastsd ymm0
+         (make-ea-for-float-ref
+          Apd rma 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vmovupd ymm2
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
@@ -184,7 +234,7 @@
          (make-ea :byte :base B
                   :index rmb-next
                   :scale (ash 16 (- n-fixnum-tag-bits))
-                  :disp 64))
+                  :disp 32))
    (inst vfmadd231pd ymm7 ymm0 ymm1)
    (inst vfmadd231pd ymm8 ymm0 ymm2)
    (inst add rma pc)
