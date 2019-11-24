@@ -70,19 +70,19 @@
           C rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
    (inst vaddpd ymm2 ymm0 ymm2)
    (inst vaddpd ymm3 ymm1 ymm3)
+   (inst vxorpd ymm0 ymm0 ymm0)
    (inst vmovupd
          (make-ea-for-float-ref
           C rmc 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
          ymm2)
    (inst vmovupd
          (make-ea-for-float-ref
-          C rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
-         ymm3)
-   (inst vxorpd ymm0 ymm0 ymm0)
-   (inst vmovupd
-         (make-ea-for-float-ref
           Caux x 0 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
          ymm0)
+   (inst vmovupd
+         (make-ea-for-float-ref
+          C rmc 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
+         ymm3)
    (inst vmovupd
          (make-ea-for-float-ref
           Caux x 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits)))
@@ -213,11 +213,6 @@
    (inst vmovupd ymm2
          (make-ea-for-float-ref
           B rmb 4 8 :scale (ash 2 (- word-shift n-fixnum-tag-bits))))
-   (inst prefetch :t0
-         (make-ea :byte :base Ampd
-                  :index rma-next
-                  :scale (ash 16 (- n-fixnum-tag-bits))
-                  :disp 0))
    (inst vfmadd231pd ymm3 ymm0 ymm1)
    (inst vfmadd231pd ymm4 ymm0 ymm2)
    (inst add rma pc)
